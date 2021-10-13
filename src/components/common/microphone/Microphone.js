@@ -1,20 +1,11 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { ReactMic } from "react-mic";
-import WaveSurfer from "wavesurfer";
 
 import { makeStyles } from "@material-ui/core/styles";
-import MicIcon from "@material-ui/icons/Mic";
+import MicIcon from "@mui/icons-material/Mic";
 import IconButton from "@material-ui/core/IconButton";
-import StopIcon from "@material-ui/icons/Stop";
-import ReplayIcon from "@material-ui/icons/Replay";
-import FiberManualRecordIcon from "@material-ui/icons/FiberManualRecord";
-import DoneIcon from "@material-ui/icons/Done";
-import CancelIcon from "@material-ui/icons/Cancel";
-import PlayArrowIcon from "@material-ui/icons/PlayArrow";
-import PauseIcon from "@material-ui/icons/Pause";
-
-import Button from "@material-ui/core/Button";
-import Dialog from "@material-ui/core/Dialog";
+import StopIcon from "@mui/icons-material/Stop";
+import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
 import DialogActions from "@material-ui/core/DialogActions";
 import DialogContent from "@material-ui/core/DialogContent";
 import DialogContentText from "@material-ui/core/DialogContentText";
@@ -34,12 +25,8 @@ const useStyles = makeStyles(theme => ({
 		width: 38
 	},
 	reactmic: {
-		width: "50%",
+		width: "80%",
 		height: 30
-	},
-	wavesurfer: {
-		width: "50%",
-		margin: "0 auto"
 	},
 	flex: {
 		flex: 1

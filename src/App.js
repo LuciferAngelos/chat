@@ -1,19 +1,17 @@
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import './App.css';
-
-import Grid from "@material-ui/core/Grid";
-
 import NavBar from "./components/common/navbar/NavBar";
 import Microphone from "./components/common/microphone/Microphone";
-import AudioPlayer from "./components/common/audioPlayer/AudioPlayer";
+import { Switch, Route, Redirect } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
-// import { startRec, stopRec } from './components/micRecorder/mainRecorderSettings';
 import { getWayConnection } from './components/socket/getWayConnect';
 import { sendPlayerTick } from './components/socket/serverConnection';
 import { Preloader } from './components/common/preloader/Preloader'
 import { getWayWebSocket } from './components/socket/constatns';
 import { WSSSContext } from './utils/Context';
 import { setLinkForSS, setSessionUserUUID } from './components/redux/appReducer';
+import { chatRoom1 } from './components/common/chatRooms/rooms/СhatRoom1';
+import { ChatBar } from './components/common/chatRooms/chatBar';
 
 
 function App() {
@@ -57,12 +55,9 @@ function App() {
   }, [])
 
 
-  const [files, setFiles] = useState([]);
   const [currentAvatarId, setCurrentAvatarId] = useState(0)
 
-  const pushFile = file => {
-    setFiles([...files, file]);
-  };
+
 
   return (
     <WSSSContext.Provider value={contextWSSS}>
@@ -72,22 +67,21 @@ function App() {
           <Preloader />
           :
           <div>
-            <NavBar
+            {/* <NavBar /> */}
+            {/* <Microphone /> */}
+            <ChatBar />
+            {/* <Switch>
+              <Route path='/' exact render={() => { <ChatBar /> }}> </Route>
 
-            />
-            <Microphone pushFile={pushFile} setCurrentAvatarId={setCurrentAvatarId} />
-            <Grid container direction="column" spacing={3}>
-              {files.map((file, index) => (
-                <Grid key={index} item>
-                  <AudioPlayer file={file} currentAvatarId={currentAvatarId} />
-                </Grid>
-              ))}
-            </Grid>
+              <Route path='*'
+                render={() => <div> 404 Page not found!</div>} />
+            </Switch> */}
+
           </div>
 
         }
       </div>
-    </WSSSContext.Provider>
+    </WSSSContext.Provider >
   );
 }
 
