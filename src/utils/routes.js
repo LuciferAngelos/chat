@@ -1,3 +1,33 @@
-export const routes = [
-	'/room1', '/room2', '/room3', '/room4'
+export const routesTechPractices = [
+	'/tecpractice1',
+	'/tecpractice2',
+	'/tecpractice3',
+	'/tecpractice4',
+	'/tecpractice5',
+	'/tecpractice6'
+]
+export const routesStands = [
+	'/stand1',
+	'/stand2',
+	'/stand3',
+	'/stand4',
+	'/stand5',
+	'/stand6',
+	'/stand7',
+	'/stand8',
+	'/stand9',
+	'/stand10',
+	'/stand11',
+	'/stand12',
+	'/stand13',
+	'/stand14',
+	'/stand15',
+	'/stand16',
+	'/stand17',
+	'/stand18',
+	'/stand19',
+	'/stand20',
+	'/stand21',
+	'/stand22',
+	'/stand23'
 ]

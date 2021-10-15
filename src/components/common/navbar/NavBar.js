@@ -9,9 +9,12 @@ import Button from "@material-ui/core/Button";
 import IconButton from "@material-ui/core/IconButton";
 import MenuIcon from "@mui/icons-material/Menu";
 import { useDispatch, useSelector } from "react-redux";
+import Backdrop from '@mui/material/Backdrop';
+import Box from '@mui/material/Box';
+import Modal from '@mui/material/Modal';
+import Fade from '@mui/material/Fade';
 
 import {
-
 	ToGetway_FromUnknown_AuthSocket,
 	ToMovement_ToPlayerScene_PlayerTick,
 	FromMovement_FromPlayerScene_PlayerJoin,
@@ -21,6 +24,7 @@ import {
 } from "../../socket/constatns.js";
 import { WSSSContext } from "../../../utils/Context";
 import { setOutputPlayerVoiceFromClient, setOutputPlayerVoiceFromSS } from "../../redux/appReducer";
+import { setUserLeft, setUserJoined } from '../../redux/usersReducer.js';
 
 
 const useStyles = makeStyles(theme => ({
@@ -32,8 +36,20 @@ const useStyles = makeStyles(theme => ({
 	},
 	title: {
 		flexGrow: 1
-	}
+	},
 }));
+const style = {
+	position: 'absolute',
+	top: '50%',
+	left: '50%',
+	transform: 'translate(-50%, -50%)',
+	width: 400,
+	bgcolor: 'background.paper',
+	boxShadow: 24,
+	p: 4,
+	border: '1px solid grey',
+	overflow: 'scroll'
+};
 
 function isWSOpen(ws) {
 	return ws.readyState === 1
@@ -100,13 +116,20 @@ let outputPlayerVoice = blobForPlay => {
 export default function NavBar() {
 	const classes = useStyles();
 
+	const [openModal, setOpenModal] = useState(false);
+	const handleOpen = () => setOpenModal(true);
+	const handleClose = () => setOpenModal(false);
+
 	const [connected, setConnected] = useState(false);
 
 	const dispatch = useDispatch();
+
 	const { linkForSS, sessionTokenForSS, userUUIDForSS } = useContext(WSSSContext)
 
 
-
+	//get users
+	const getUsersFromStore = useSelector(state => state.users.users)
+	const [users, setUsers] = useState([])
 
 	//get soundPacket
 
@@ -115,11 +138,12 @@ export default function NavBar() {
 
 
 	useEffect(() => {
+		let ignore = false;
 
-
-		start();
+		if (!ignore) start();
 
 		function start() {
+
 			let webSocketSS = linkForSS ? new WebSocket(linkForSS) : console.log('Fetching the link...');
 			webSocketSS.binaryType = "arraybuffer";
 
@@ -164,7 +188,7 @@ export default function NavBar() {
 
 					array.set(methodBuffer, 0)
 					array.set(sessionBuffer, 4)
-					array.set(new Uint8Array([0]), 4 + 36)
+					array.set(new Uint8Array([1]), 4 + 36)
 					array.set(locationUUIDBuffer, 4 + 36 + 1)
 
 					webSocketSS.send(array);
@@ -207,17 +231,18 @@ export default function NavBar() {
 							countPlayers,
 							users
 						);
-						console.log('Sound Server WebSocket state is ' + webSocketSS.readyState);
 
 						break;
 					case FromMovement_FromPlayerScene_PlayerJoin:
 						const user = readPlayerFromPlayerList(message, 4);
 						console.log("User Join: " + user.uuid);
+						dispatch(setUserJoined(user))
 						break;
 					case FromMovement_FromPlayerScene_PlayerLeave:
 						message.offset = 4;
 						const uuid = message.readUtf8String(36);
 						console.log("User Leave: " + uuid);
+						dispatch(setUserLeft(uuid))
 						break;
 					case FromSound_FromPlayerScene_PlayerVoice:
 						const user_from_voice = readPlayerFromPlayerList(message, 4, true);
@@ -261,13 +286,6 @@ export default function NavBar() {
 				webSocketSS.close()
 			}
 
-
-
-			// if (audioFromPlayer) {
-			// 	sendPlayerTick({ x: 0, y: 0, z: 0 }, 0, audioFromPlayer)
-			// 	dispatch(setOutputPlayerVoiceFromClient(null))
-			// }
-
 			let sendPlayerTick = (
 				position,
 				state,
@@ -298,14 +316,14 @@ export default function NavBar() {
 			};
 
 			window.sendPlayerTick = audioChunk => sendPlayerTick({ x: 0, y: 0, z: 0 }, 0, audioChunk)
-
-
 		};
-
-
-
+		return () => { ignore = true }
 	}, [linkForSS]);
 
+	useMemo(() => {
+		setUsers(getUsersFromStore)
+		console.log(users);
+	}, [getUsersFromStore, users])
 
 	return (
 		<div className={classes.root}>
@@ -323,7 +341,37 @@ export default function NavBar() {
 						Connection Status:
 						{connected ? ' Connected!' : ' Disconnected!'}
 					</Typography>
-					<Button color="inherit" /* onClick={handleConnect} */>AChat Connection</Button>
+					<Button color="inherit" onClick={handleOpen}>Users List</Button>
+					<Modal
+						aria-labelledby="transition-modal-title"
+						aria-describedby="transition-modal-description"
+						open={openModal}
+						onClose={handleClose}
+						closeAfterTransition
+						BackdropComponent={Backdrop}
+						BackdropProps={{
+							timeout: 500,
+						}}
+					>
+						<Fade in={openModal}>
+							<Box sx={style}>
+								<Typography id="transition-modal-title" variant="h6" component="h2">
+									Users connected:
+								</Typography>
+								{
+									users.length !== 0 ? users.map(u =>
+										<Typography id="transition-modal-description" sx={{ mt: 2 }} key={u.id}>
+											User's UUID: {u.uuid}
+										</Typography>
+									)
+										:
+										(<Typography id="transition-modal-description" sx={{ mt: 2 }}>
+											Waiting for users
+										</Typography>)
+								}
+							</Box>
+						</Fade>
+					</Modal>
 				</Toolbar>
 			</AppBar>
 		</div>

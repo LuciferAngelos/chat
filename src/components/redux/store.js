@@ -2,11 +2,13 @@ import { createStore, combineReducers, applyMiddleware, compose } from 'redux'
 import thunkMiddleware from 'redux-thunk'
 
 import { appReducer } from './appReducer';
+import { usersReducer } from './usersReducer';
 
 
 let reducers = combineReducers(
 	{
-		app: appReducer
+		app: appReducer,
+		users: usersReducer
 	}
 )
 

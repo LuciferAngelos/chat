@@ -3,13 +3,11 @@ import { ReactMic } from "react-mic";
 
 import { makeStyles } from "@material-ui/core/styles";
 import MicIcon from "@mui/icons-material/Mic";
+import MicOffIcon from '@mui/icons-material/MicOff';
 import IconButton from "@material-ui/core/IconButton";
 import StopIcon from "@mui/icons-material/Stop";
 import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
 import DialogActions from "@material-ui/core/DialogActions";
-import DialogContent from "@material-ui/core/DialogContent";
-import DialogContentText from "@material-ui/core/DialogContentText";
-import DialogTitle from "@material-ui/core/DialogTitle";
 import Grid from "@material-ui/core/Grid";
 import { green, red, blue } from "@material-ui/core/colors";
 
@@ -33,7 +31,7 @@ const useStyles = makeStyles(theme => ({
 	}
 }));
 
-export default function Microphone({ pushFile, setCurrentAvatarId }) {
+export default function Microphone({ size }) {
 
 	const dispatch = useDispatch();
 
@@ -164,43 +162,38 @@ export default function Microphone({ pushFile, setCurrentAvatarId }) {
 
 	return (
 		<>
-			<Grid container justify="center">
+			<Grid container justifyContent="center">
 				<Grid item>
 
 					{!record && stopRecord ?
 						(
 							<IconButton onClick={startRecording}>
-								<MicIcon className={classes.icon} />
+								<MicIcon className={classes.icon} style={{ width: size, height: size }} />
 							</IconButton>
 						)
 						:
 						<IconButton onClick={totallyStop}>
-							<MicIcon className={classes.icon} />
+							<MicOffIcon className={classes.icon} />
 						</IconButton>}
 
 
 				</Grid>
 			</Grid>
 			<Card >
-				<DialogTitle className={classes.flex}>Open Micro</DialogTitle>
-				<DialogContent>
-
-					<div />
-					<ReactMic
-						record={record}
-						className={classes.reactmic}
-						visualSetting="frequencyBars"
-						echoCancellation={true}
-						noiseSuppression={true}
-						onStop={onStop}
-						onData={onData}
-						strokeColor="green"
-						backgroundColor="white"
-					/>
-				</DialogContent>
+				<ReactMic
+					record={record}
+					className={classes.reactmic}
+					visualSetting="frequencyBars"
+					echoCancellation={true}
+					noiseSuppression={true}
+					onStop={onStop}
+					onData={onData}
+					strokeColor="green"
+					backgroundColor="white"
+				/>
 				<DialogActions>
 					<Grid container>
-						<Grid item container justify="center" xs={12}>
+						<Grid item container justifyContent="center" xs={12}>
 							{!record && stopRecord && (
 								<IconButton onClick={startRecording}>
 									<FiberManualRecordIcon
