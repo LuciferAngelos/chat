@@ -42,7 +42,6 @@ const style = {
 	position: 'absolute',
 	top: '6%',
 	right: '10%',
-	// transform: 'translate(-50%, -50%)',
 	width: 400,
 	maxHeight: '70vh',
 	bgcolor: 'background.paper',
