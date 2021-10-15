@@ -40,15 +40,16 @@ const useStyles = makeStyles(theme => ({
 }));
 const style = {
 	position: 'absolute',
-	top: '50%',
-	left: '50%',
-	transform: 'translate(-50%, -50%)',
+	top: '6%',
+	right: '10%',
+	// transform: 'translate(-50%, -50%)',
 	width: 400,
+	maxHeight: '70vh',
 	bgcolor: 'background.paper',
 	boxShadow: 24,
 	p: 4,
 	border: '1px solid grey',
-	overflow: 'scroll'
+	overflow: 'auto'
 };
 
 function isWSOpen(ws) {
@@ -92,7 +93,7 @@ const readPlayerFromPlayerList = (
 		uuid: uuid,
 		id: id,
 		position: position,
-		state: state,
+		state: state
 	};
 };
 
