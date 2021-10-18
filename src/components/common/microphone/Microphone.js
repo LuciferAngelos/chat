@@ -173,7 +173,7 @@ export default function Microphone({ size }) {
 						)
 						:
 						<IconButton onClick={totallyStop}>
-							<MicOffIcon className={classes.icon} />
+							<MicOffIcon className={classes.icon} style={{ width: size, height: size }} />
 						</IconButton>}
 
 

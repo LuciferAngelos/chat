@@ -27,7 +27,7 @@ export function getWayConnection(link) {
 				switch (dataFromGetWay.method) {
 
 					case FromGetway_AuthSocket_Response:
-						console.log(dataFromGetWay.user.session_uuid, dataFromGetWay.user.user_uuid);
+						console.log(dataFromGetWay.user.user_uuid);
 						store.dispatch(setSessionUserUUID(dataFromGetWay.user.session_uuid, dataFromGetWay.user.user_uuid))
 						newWS.send(JSON.stringify({ method: ToGetway_FromPlayer_GetSoundServer, company_uuid: '1' }))
 						break;
@@ -44,26 +44,10 @@ export function getWayConnection(link) {
 		}
 
 		newWS.onclose = () => {
-			console.log('Sound Server Socket closed. trying to reconnect...');
+			console.log('GetWay websocket closed. trying to reconnect...');
 			setTimeout(() => {
 				connect()
 			}, 1000);
 		}
 	}
 }
-
-
-// export const getWayConnection = () => {
-// let res;
-// let interval = 100;
-// let timerId = setTimeout(() => {
-// 	if (soundServResponse === undefined) {
-// 		getWayConnection()
-// 	} else {
-// 		clearTimeout(timerId)
-// 		console.log(soundServResponse);
-// 		res = soundServResponse.a
-// 		return res;
-// 	}
-// }, interval);
-// }

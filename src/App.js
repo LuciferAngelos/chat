@@ -1,6 +1,6 @@
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import './App.css';
-import NavBar from "./components/common/navbar/NavBar";
+import { NavBar } from "./components/common/navbar/NavBar";
 import Microphone from "./components/common/microphone/Microphone";
 import { Switch, Route, Redirect } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
@@ -31,6 +31,7 @@ function App() {
   const linkForSS = useSelector(state => state.app.linkForSS)
   const sessionTokenForSS = useSelector(state => state.app.sessionToken)
   const userUUIDForSS = useSelector(state => state.app.userUUID)
+
 
   useMemo(() => {
     dispatch(setLinkForSS);

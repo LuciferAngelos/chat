@@ -1,6 +1,6 @@
 import Axios from 'axios'
 import { BufferStream } from "buffer-stream-js";
-import React, { useCallback, useContext, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { makeStyles } from "@material-ui/core/styles";
 import AppBar from "@material-ui/core/AppBar";
 import Toolbar from "@material-ui/core/Toolbar";
@@ -24,7 +24,7 @@ import {
 } from "../../socket/constatns.js";
 import { WSSSContext } from "../../../utils/Context";
 import { setOutputPlayerVoiceFromClient, setOutputPlayerVoiceFromSS } from "../../redux/appReducer";
-import { setUserLeft, setUserJoined } from '../../redux/usersReducer.js';
+import { setUserLeft, setUserJoined, setUsersFromList } from '../../redux/usersReducer.js';
 
 
 const useStyles = makeStyles(theme => ({
@@ -113,7 +113,7 @@ let outputPlayerVoice = blobForPlay => {
 	};
 }
 
-export default function NavBar() {
+export const NavBar = ({ getUsersFromStore }) => {
 	const classes = useStyles();
 
 	const [openModal, setOpenModal] = useState(false);
@@ -127,25 +127,26 @@ export default function NavBar() {
 	const { linkForSS, sessionTokenForSS, userUUIDForSS } = useContext(WSSSContext)
 
 
-	//get users
-	const getUsersFromStore = useSelector(state => state.users.users)
+	//get self uuid
+	const getUUIDFromGetWay = useSelector(state => state.app.userUUID)
+
 	const [users, setUsers] = useState([])
 
-	//get soundPacket
-
-	const onVoiceChat = useSelector(state => state.app.onDialog)
-	const audioFromPlayer = useSelector(state => state.app.outputPlayerVoiceFromClient)
-
+	//ref for ws
+	const webSocket = useRef(null)
 
 	useEffect(() => {
-		let ignore = false;
 
-		if (!ignore) start();
+		start();
 
 		function start() {
 
+
 			let webSocketSS = linkForSS ? new WebSocket(linkForSS) : console.log('Fetching the link...');
+			webSocket.current = webSocketSS;
+			window.webSocketSS = webSocketSS
 			webSocketSS.binaryType = "arraybuffer";
+
 
 			// webSocketSS.onopen = () => {
 			// 	console.log('Sound Server WebSocket is connected and its state is ' + webSocketSS.readyState);
@@ -199,6 +200,7 @@ export default function NavBar() {
 				})
 			};
 
+
 			webSocketSS.onmessage = buffer => {
 
 				const message = new BufferStream(buffer.data);
@@ -221,8 +223,14 @@ export default function NavBar() {
 									(4 + 4 + 4) /* Position */ +
 									1) /* Flags */
 							);
+
+							if (user.uuid === getUUIDFromGetWay) {
+								console.log('the uuid is the same');
+							}
 							users.push(user);
 						}
+
+						dispatch(setUsersFromList(users))
 
 						console.log(JSON.stringify(users));
 
@@ -234,6 +242,9 @@ export default function NavBar() {
 
 						break;
 					case FromMovement_FromPlayerScene_PlayerJoin:
+
+						console.log('the message => ', message);
+
 						const user = readPlayerFromPlayerList(message, 4);
 						console.log("User Join: " + user.uuid);
 						dispatch(setUserJoined(user))
@@ -316,8 +327,13 @@ export default function NavBar() {
 			};
 
 			window.sendPlayerTick = audioChunk => sendPlayerTick({ x: 0, y: 0, z: 0 }, 0, audioChunk)
-		};
-		return () => { ignore = true }
+		}
+
+		return () => {
+			webSocket.current = null;
+			webSocket.close()
+		}
+
 	}, [linkForSS]);
 
 	useMemo(() => {
@@ -359,9 +375,9 @@ export default function NavBar() {
 									Users connected:
 								</Typography>
 								{
-									users.length !== 0 ? users.map(u =>
+									getUsersFromStore.length !== 0 ? getUsersFromStore.map(u =>
 										<Typography id="transition-modal-description" sx={{ mt: 2 }} key={u.id}>
-											User's UUID: {u.uuid}
+											User's UUID: <span style={{ color: 'blue' }}>{u.uuid}</span>
 										</Typography>
 									)
 										:

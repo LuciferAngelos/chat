@@ -20,7 +20,7 @@ import InboxIcon from '@mui/icons-material/MoveToInbox';
 import MailIcon from '@mui/icons-material/Mail';
 import Microphone from '../microphone/Microphone';
 import { Grid } from '@material-ui/core';
-import NavBar from '../navbar/NavBar';
+import { NavBar } from '../navbar/NavBar';
 import VoiceChatIcon from '@mui/icons-material/VoiceChat';
 import { routesTechPractices, routesStands } from './../../../utils/routes'
 import './chatBar.css'
@@ -29,13 +29,16 @@ import { ChatRoom1 } from './rooms/СhatRoom1';
 import { СhatRoom2 } from './rooms/СhatRoom2';
 import { СhatRoom3 } from './rooms/СhatRoom3';
 import { СhatRoom4 } from './rooms/СhatRoom4';
-
+import { useSelector } from 'react-redux';
+import { FixedSizeList } from 'react-window';
+import { Preloader } from '../preloader/Preloader';
 
 const drawerWidth = 240;
-
 const roomsTechPracticeNames = ['Техпрактика 1', 'Техпрактика 2', 'Техпрактика 3', 'Техпрактика 4 (Don\'t)', 'Техпрактика 5', 'Техпрактика 6']
 
+
 export const ChatBar = () => {
+	const getUsersFromStore = useSelector(state => state.users.users)
 
 	const [open, setOpen] = useState(true);
 	const [openSt, setOpenSt] = useState(false);
@@ -54,7 +57,7 @@ export const ChatBar = () => {
 			<Box sx={{ display: 'flex' }}>
 				<CssBaseline />
 				<AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
-					<NavBar />
+					<NavBar getUsersFromStore={getUsersFromStore} />
 				</AppBar>
 				<Drawer
 					variant="permanent"
@@ -117,7 +120,6 @@ export const ChatBar = () => {
 									</NavLink>
 								))}
 							</Collapse>
-
 						</List>
 						<Divider />
 					</Box>
@@ -133,6 +135,25 @@ export const ChatBar = () => {
 						<Route exact path='/room4' component={СhatRoom4} />
 						<Route path='*' render={() => <div>There is no such chat room!</div>} /> */}
 					</Switch>
+				</Box>
+				<Box
+					sx={{ marginTop: '4em', width: '100%', height: 400, maxWidth: 360, bgcolor: 'background.paper' }}
+				>
+					<List>
+						<ListItemText primary={'Список пользователей'} />
+						{
+							getUsersFromStore.length !== 0 ?
+								getUsersFromStore.map((user, index) =>
+								(<ListItem key={index} component="div" disablePadding>
+									<ListItemButton>
+										<ListItemText primary={user.uuid} />
+									</ListItemButton>
+								</ListItem>))
+								:
+								<Preloader />
+						}
+					</List>
+
 				</Box>
 			</Box>
 		</Grid>
