@@ -13,8 +13,7 @@ import { green, red, blue } from "@material-ui/core/colors";
 
 import "./microphone.css";
 import { Card } from "@material-ui/core";
-import { sendPlayerTick } from "../../socket/serverConnection";
-import { setOutputPlayerVoiceFromClient, toggleOnDialog } from "../../redux/appReducer";
+// import { setOutputPlayerVoiceFromClient, toggleOnDialog } from "../../redux/appReducer";
 import { useDispatch } from "react-redux";
 
 const useStyles = makeStyles(theme => ({
@@ -50,7 +49,13 @@ export default function Microphone({ size }) {
 	useEffect(() => {
 		if (stopRecord) return
 
-		navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
+		navigator.mediaDevices.getUserMedia({
+			audio: {
+				echoCancellation: true,
+				noiseSuppression: true,
+				sampleRate: 44100
+			}
+		}).then((stream) => {
 			const mediaRecorder = new window.MediaRecorder(stream);
 			let audioChunks = [];
 			console.log(stream.getAudioTracks());

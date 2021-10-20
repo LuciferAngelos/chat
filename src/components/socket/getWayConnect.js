@@ -1,4 +1,4 @@
-import { setLinkForSS, setSessionUserUUID } from '../redux/appReducer';
+import { setLinkForSS } from '../redux/appReducer';
 import store from '../redux/store'
 import {
 	getWayWebSocket,
@@ -8,8 +8,8 @@ import {
 	FromGetway_FromPlayer_GetSoundServerResponse
 } from "./constants.js";
 
-
-export function getWayConnection(lobbyUUID = '', connectionType = 1) {
+// lobbyUUID = "123456789012345678901234567890123456"
+export function getWayConnection(sessionUUID, lobbyUUID, connectionType = 1) {
 
 	const newWS = new WebSocket(getWayWebSocket);
 
@@ -18,7 +18,7 @@ export function getWayConnection(lobbyUUID = '', connectionType = 1) {
 	function connect() {
 		newWS.onopen = () => {
 			console.log('GetWay Socket connected');
-			newWS.send(JSON.stringify({ method: ToGetway_FromUnknown_AuthSocket, token: "0e1e703b-059b-4d3d-b275-3fc36ea4e8c4", type: connectionType }))
+			newWS.send(JSON.stringify({ method: ToGetway_FromUnknown_AuthSocket, token: sessionUUID, type: connectionType }))
 		}
 		newWS.onmessage = (data) => {
 			let dataFromGetWay = JSON.parse(data.data);
@@ -29,8 +29,8 @@ export function getWayConnection(lobbyUUID = '', connectionType = 1) {
 
 					case FromGetway_AuthSocket_Response:
 						console.log(dataFromGetWay.user);
-						store.dispatch(setSessionUserUUID(dataFromGetWay.user.session_uuid, dataFromGetWay.user.user_uuid))
-						newWS.send(JSON.stringify({ method: ToGetway_FromPlayer_GetSoundServer, lobby_uuid: lobbyUUID }))
+						console.log();
+						newWS.send(JSON.stringify({ method: ToGetway_FromPlayer_GetSoundServer, lobby_uuid: lobbyUUID }));
 						break;
 
 					case FromGetway_FromPlayer_GetSoundServerResponse:

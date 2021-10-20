@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react'
+import React, { useContext, useRef, useState } from 'react'
 import Box from '@mui/material/Box';
 import Drawer from '@mui/material/Drawer';
 import AppBar from '@mui/material/AppBar';
@@ -30,6 +30,7 @@ import { СhatRoom4 } from './rooms/СhatRoom4';
 import { useSelector } from 'react-redux';
 import { Preloader } from '../preloader/Preloader';
 import { ScreenCapture } from '../screenCapture/ScreenCapture';
+import { WSSSContext } from '../../../utils/Context';
 
 const drawerWidth = 240;
 const roomsTechPracticeNames = ['Техпрактика 1', 'Техпрактика 2', 'Техпрактика 3', 'Техпрактика 4 (Don\'t)', 'Техпрактика 5', 'Техпрактика 6']
@@ -42,6 +43,7 @@ var displayMediaOptions = {
 };
 
 export const ChatBar = ({ getUsersFromStore }) => {
+	const { userUUID } = useContext(WSSSContext)
 
 	const [open, setOpen] = useState(true);
 	const [openSt, setOpenSt] = useState(false);
@@ -161,12 +163,21 @@ export const ChatBar = ({ getUsersFromStore }) => {
 								<ListItemText primary={'Список пользователей'} />
 								{
 									getUsersFromStore.length !== 0 ?
-										getUsersFromStore.map((user, index) =>
-										(<ListItem key={index} component="div" disablePadding>
-											<ListItemButton>
-												<ListItemText primary={user.uuid} />
-											</ListItemButton>
-										</ListItem>))
+										getUsersFromStore.map((user, index) => {
+											return user.uuid === userUUID ?
+												<ListItem key={index} component="div" disablePadding>
+													<ListItemButton>
+														<ListItemText primary={`Я: ${user.uuid}`} sx={{ color: 'red' }} />
+													</ListItemButton>
+												</ListItem>
+												:
+												<ListItem key={index} component="div" disablePadding>
+													<ListItemButton>
+														<ListItemText primary={user.uuid} />
+													</ListItemButton>
+												</ListItem>
+										}
+										)
 										:
 										<Preloader />
 								}

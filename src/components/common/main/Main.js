@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react'
+import React, { useCallback, useMemo } from 'react'
 import { Input } from '@mui/material';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -7,11 +7,11 @@ import { getWayConnection } from '../../socket/getWayConnect';
 import { NavLink } from 'react-router-dom';
 import { mainRoot } from '../../socket/constants';
 
-export const Main = ({ lobbyUUID, setLobbyUUID }) => {
+export const Main = ({ sessionUUID, lobbyUUID, setLobbyUUID }) => {
 
-	const handleConnectToGetWay = useCallback(() => {
-		getWayConnection(lobbyUUID, 1);
-	}, [lobbyUUID, setLobbyUUID])
+	const handleConnectToGetWay = () => {
+		getWayConnection(sessionUUID, lobbyUUID, 1);
+	}
 
 	const handleGetLobbyUUID = useCallback((e) => {
 		setLobbyUUID(e.target.value)
@@ -23,7 +23,7 @@ export const Main = ({ lobbyUUID, setLobbyUUID }) => {
 				<Box sx={{ m: 1 }}>Нажми на кнопку, чтобы войти в общую говорилку</Box>
 
 				<NavLink exact to={mainRoot + '/lobby'} style={{ textDecoration: 'none', color: 'inherit' }}>
-					<Button variant="outlined" /* onClick={handleConnectToGetWay} */>Войти в общее лобби</Button>
+					<Button variant="outlined" onClick={handleConnectToGetWay}>Войти в общее лобби</Button>
 				</NavLink>
 
 			</Box>

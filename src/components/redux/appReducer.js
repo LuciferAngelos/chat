@@ -1,3 +1,5 @@
+import { getAuthUserData } from "./usersReducer";
+
 const INITIALIZED_SUCCESS = 'INITIALIZED_SUCCESS';
 const TOKEN_USER_UUID_GOTTEN = 'TOKEN_USER_UUID_GOTTEN';
 const ON_LINK_GOTTEN = 'ON_LINK_GOTTEN';
@@ -9,8 +11,6 @@ const GET_OUTPUT_PLAYER_VOICE_FROM_SERVER = 'GET_OUTPUT_PLAYER_VOICE_FROM_SERVER
 let initialState = {
 	initialized: false,
 	linkIsFetched: false,
-	sessionToken: '',
-	userUUID: '',
 	linkForSS: '',
 	type: 1,
 	onDialog: false,
@@ -24,11 +24,6 @@ export const appReducer = (state = initialState, action) => {
 			return {
 				...state,
 				initialized: true
-			};
-		case TOKEN_USER_UUID_GOTTEN:
-			return {
-				...state,
-				...action.payload
 			};
 		case ON_DIALOG:
 			return {
@@ -58,21 +53,18 @@ export const appReducer = (state = initialState, action) => {
 }
 
 //AC
-// export const setInitializedSuccess = () => ({ type: INITIALIZED_SUCCESSED });
-export const setSessionUserUUID = (sessionToken, userUUID) => ({ type: TOKEN_USER_UUID_GOTTEN, payload: { sessionToken, userUUID } })
+export const setInitializedSuccess = () => ({ type: INITIALIZED_SUCCESS });
 export const setLinkForSS = (link) => ({ type: ON_LINK_GOTTEN, link })
-export const toggleOnDialog = () => ({ type: ON_DIALOG })
-export const setOutputPlayerVoiceFromClient = (voice) => ({ type: GET_OUTPUT_PLAYER_VOICE_FROM_CLIENT, voice })
-export const setOutputPlayerVoiceFromSS = (voice) => ({ type: GET_OUTPUT_PLAYER_VOICE_FROM_SERVER, voice })
+// export const toggleOnDialog = () => ({ type: ON_DIALOG })
+// export const setOutputPlayerVoiceFromClient = (voice) => ({ type: GET_OUTPUT_PLAYER_VOICE_FROM_CLIENT, voice })
+// export const setOutputPlayerVoiceFromSS = (voice) => ({ type: GET_OUTPUT_PLAYER_VOICE_FROM_SERVER, voice })
 
 //thunk
-// export const getOutputPlayerVoiceFromClient = (voice) => {
-// 	return async (dispatch) => {
-// 		dispatch(toggleOnDialog());
-// 		debugger
-// 		await dispatch(setOutputPlayerVoiceFromClient(voice));
-// 		dispatch(toggleOnDialog());
-// 		dispatch(setOutputPlayerVoiceFromClient(null));
+export const initializeApp = () => async (dispatch) => {
+	let promise = dispatch(getAuthUserData());
 
-// 	}
-// }
+	Promise.all([promise]).then(() => {
+		dispatch(setInitializedSuccess());
+	})
+
+}

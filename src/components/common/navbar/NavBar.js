@@ -145,12 +145,11 @@ export const NavBar = ({ getUsersFromStore }) => {
 
 	const dispatch = useDispatch();
 
-	const { linkForSS, sessionTokenForSS, userUUIDForSS, getConnectionType } = useContext(WSSSContext)
+	const { linkForSS, sessionTokenForSS, userUUID, getConnectionType, lobbyUUID } = useContext(WSSSContext)
 
 	let webSocketSS = null;
 
 	//get self uuid
-	const getUUIDFromGetWay = useSelector(state => state.app.userUUID)
 
 	const [users, setUsers] = useState([])
 
@@ -158,8 +157,6 @@ export const NavBar = ({ getUsersFromStore }) => {
 	const webSocket = useRef(null)
 
 	useEffect(() => {
-
-
 		if (linkForSS) start();
 
 		function start() {
@@ -203,26 +200,22 @@ export const NavBar = ({ getUsersFromStore }) => {
 
 
 			webSocketSS.onopen = () => {
+				const array = new Uint8Array(4 + 36 + 1 + 36)
 
-				Axios.get('https://getway.dev.viexpo.ru/api/account/fake/get').then((res) => {
-					const sessionUUID = res.data.response.session_uuid
-					const array = new Uint8Array(4 + 36 + 1 + 36)
+				const methodBuffer = new Uint8Array(new Uint32Array([ToGetway_FromUnknown_AuthSocket]).buffer)
+				const sessionBuffer = new TextEncoder().encode(sessionTokenForSS)
+				const locationUUIDBuffer = new TextEncoder().encode(lobbyUUID) // 36 LEN частное лобби или общее
+				console.log(lobbyUUID);
+				array.set(methodBuffer, 0)
+				array.set(sessionBuffer, 4)
+				array.set(new Uint8Array([getConnectionType]), 4 + 36)
+				array.set(locationUUIDBuffer, 4 + 36 + 1)
 
-					const methodBuffer = new Uint8Array(new Uint32Array([ToGetway_FromUnknown_AuthSocket]).buffer)
-					const sessionBuffer = new TextEncoder().encode(sessionUUID)
-					const locationUUIDBuffer = new TextEncoder().encode("123456789012345678901234567890123456") // 36 LEN
+				webSocketSS.send(array);
 
-					array.set(methodBuffer, 0)
-					array.set(sessionBuffer, 4)
-					array.set(new Uint8Array([getConnectionType]), 4 + 36)
-					array.set(locationUUIDBuffer, 4 + 36 + 1)
-
-					webSocketSS.send(array);
-
-					if (webSocketSS.readyState === 1) {
-						setConnected(true)
-					}
-				})
+				if (webSocketSS.readyState === 1) {
+					setConnected(true)
+				}
 			};
 
 
@@ -249,7 +242,7 @@ export const NavBar = ({ getUsersFromStore }) => {
 									1) /* Flags */
 							);
 
-							if (user.uuid === getUUIDFromGetWay) {
+							if (user.uuid === userUUID) {
 								console.log('the uuid is the same');
 							}
 							users.push(user);
@@ -309,11 +302,15 @@ export const NavBar = ({ getUsersFromStore }) => {
 					setConnected(false)
 				}
 
+				if (e.code !== 1005) {
+					setTimeout(() => {
+						start()
+						console.log(webSocketSS.readyState);
+					}, 1000);
+				} else {
+					console.log('Socket was closed by user');
+				}
 
-				setTimeout(() => {
-					start()
-					console.log(webSocketSS.readyState);
-				}, 1000);
 
 			}
 
@@ -406,10 +403,17 @@ export const NavBar = ({ getUsersFromStore }) => {
 									Users connected:
 								</Typography>
 								{
-									getUsersFromStore.length !== 0 ? getUsersFromStore.map(u =>
-										<Typography id="transition-modal-description" sx={{ mt: 2 }} key={u.id}>
-											User's UUID: <span style={{ color: 'blue' }}>{u.uuid}</span>
-										</Typography>
+									getUsersFromStore.length !== 0 ? getUsersFromStore.map(u => {
+										return userUUID === u.uuid ?
+											<Typography id="transition-modal-description" sx={{ mt: 2 }} key={u.id}>
+												Self: <span style={{ color: 'red' }}>{u.uuid}</span>
+											</Typography>
+
+											:
+											<Typography id="transition-modal-description" sx={{ mt: 2 }} key={u.id}>
+												User's UUID: <span style={{ color: 'blue' }}>{u.uuid}</span>
+											</Typography>
+									}
 									)
 										:
 										(<Typography id="transition-modal-description" sx={{ mt: 2 }}>
