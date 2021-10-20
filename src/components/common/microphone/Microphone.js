@@ -46,9 +46,9 @@ export default function Microphone({ size }) {
 	const [isPlaying, setIsPlaying] = useState(false);
 	const wavesurfer = useRef(null);
 
+
 	useEffect(() => {
 		if (stopRecord) return
-
 
 		navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
 			const mediaRecorder = new window.MediaRecorder(stream);
@@ -66,7 +66,6 @@ export default function Microphone({ size }) {
 			);
 
 			mediaRecorder.addEventListener("stop", () => {
-
 
 				if (audioChunks.length > 0) {
 
@@ -91,7 +90,6 @@ export default function Microphone({ size }) {
 						}
 					}, 1000);
 
-
 				}
 			});
 
@@ -103,9 +101,7 @@ export default function Microphone({ size }) {
 				}
 			}, 1000);
 
-
 		});
-
 
 	}, [record, stopRecord])
 

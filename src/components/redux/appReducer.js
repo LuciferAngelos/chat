@@ -12,6 +12,7 @@ let initialState = {
 	sessionToken: '',
 	userUUID: '',
 	linkForSS: '',
+	type: 1,
 	onDialog: false,
 	outputPlayerVoiceFromClient: null,
 	outputPlayerVoiceFromSS: null

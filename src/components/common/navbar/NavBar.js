@@ -21,10 +21,11 @@ import {
 	FromMovement_FromPlayerScene_PlayerLeave,
 	FromMovement_FromPlayerScene_PlayerList,
 	FromSound_FromPlayerScene_PlayerVoice
-} from "../../socket/constatns.js";
+} from "../../socket/constants.js";
 import { WSSSContext } from "../../../utils/Context";
 import { setOutputPlayerVoiceFromClient, setOutputPlayerVoiceFromSS } from "../../redux/appReducer";
 import { setUserLeft, setUserJoined, setUsersFromList } from '../../redux/usersReducer.js';
+import { WSTransferTest } from './WSTransferTest.js';
 
 
 const useStyles = makeStyles(theme => ({
@@ -96,6 +97,26 @@ const readPlayerFromPlayerList = (
 	};
 };
 
+// function Video(src, append) {
+// 	var v = document.createElement("video");
+// 	if (src != "") {
+// 		v.src = src;
+// 	}
+// 	if (append == true) {
+// 		document.body.appendChild(v);
+// 	}
+// 	return v;
+// }
+
+// You can then use it like this:
+
+// var video = new Video("YOUR_VIDEO_URL", true);
+// // do whatever you want...
+// video.height = 280;
+// video.width = 500;
+// video.controls = "controls";
+// video.play();
+
 
 let outputPlayerVoice = blobForPlay => {
 	const outputBlob = new Blob([blobForPlay], {
@@ -124,8 +145,9 @@ export const NavBar = ({ getUsersFromStore }) => {
 
 	const dispatch = useDispatch();
 
-	const { linkForSS, sessionTokenForSS, userUUIDForSS } = useContext(WSSSContext)
+	const { linkForSS, sessionTokenForSS, userUUIDForSS, getConnectionType } = useContext(WSSSContext)
 
+	let webSocketSS = null;
 
 	//get self uuid
 	const getUUIDFromGetWay = useSelector(state => state.app.userUUID)
@@ -137,15 +159,18 @@ export const NavBar = ({ getUsersFromStore }) => {
 
 	useEffect(() => {
 
-		start();
+
+		if (linkForSS) start();
 
 		function start() {
 
+			const linkSS = linkForSS ? linkForSS : console.log('Fetching the link...');
 
-			let webSocketSS = linkForSS ? new WebSocket(linkForSS) : console.log('Fetching the link...');
+			webSocketSS = new WebSocket(linkSS);
 			webSocket.current = webSocketSS;
-			window.webSocketSS = webSocketSS
+			window.webSocketSS = webSocketSS;
 			webSocketSS.binaryType = "arraybuffer";
+
 
 
 			// webSocketSS.onopen = () => {
@@ -189,7 +214,7 @@ export const NavBar = ({ getUsersFromStore }) => {
 
 					array.set(methodBuffer, 0)
 					array.set(sessionBuffer, 4)
-					array.set(new Uint8Array([1]), 4 + 36)
+					array.set(new Uint8Array([getConnectionType]), 4 + 36)
 					array.set(locationUUIDBuffer, 4 + 36 + 1)
 
 					webSocketSS.send(array);
@@ -330,8 +355,13 @@ export const NavBar = ({ getUsersFromStore }) => {
 		}
 
 		return () => {
-			webSocket.current = null;
-			webSocket.close()
+			if (!webSocket.current && !linkForSS) {
+				return
+			} else {
+				webSocket.current.close();
+				webSocket.current = null;
+
+			}
 		}
 
 	}, [linkForSS]);
@@ -353,6 +383,7 @@ export const NavBar = ({ getUsersFromStore }) => {
 					>
 						<MenuIcon />
 					</IconButton>
+					<WSTransferTest socket={webSocket.current} />
 					<Typography variant="h6" className={classes.title}>
 						Connection Status:
 						{connected ? ' Connected!' : ' Disconnected!'}
