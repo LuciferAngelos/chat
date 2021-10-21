@@ -31,6 +31,7 @@ function App() {
     type: '',
     lobbyUUID: ''
   })
+  const [screenBlob, setScreenBlob] = useState(null)
 
   const [lobbyUUID, setLobbyUUID] = useState('');
 
@@ -66,11 +67,18 @@ function App() {
     <WSSSContext.Provider value={contextWSSS}>
       <div className="home" style={{ textAlign: "center" }}>
 
-        <NavBar getUsersFromStore={getUsersFromStore} />
+        <NavBar
+          getUsersFromStore={getUsersFromStore}
+          setScreenBlob={setScreenBlob}
+        />
         <Switch>
 
           <Route exact path={mainRoot} render={() => <Main lobbyUUID={lobbyUUID} setLobbyUUID={setLobbyUUID} sessionUUID={sessionTokenForSS} />} />
-          <Route exact path={mainRoot + `/lobby/${lobbyUUID}`} render={() => <ChatBar getUsersFromStore={getUsersFromStore} />} />
+          <Route exact path={mainRoot + `/lobby/${lobbyUUID}`} render={() => <ChatBar
+            getUsersFromStore={getUsersFromStore}
+            screenBlob={screenBlob}
+            setScreenBlob={setScreenBlob}
+          />} />
 
           <Route path='*'
             render={() => <div> 404 Page not found!</div>} />

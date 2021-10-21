@@ -1,11 +1,8 @@
-import React, { useContext, useRef, useState } from 'react'
+import React, { useContext, useEffect, useRef, useState } from 'react'
 import Box from '@mui/material/Box';
 import Drawer from '@mui/material/Drawer';
-import AppBar from '@mui/material/AppBar';
 import CssBaseline from '@mui/material/CssBaseline';
-import Toolbar from '@mui/material/Toolbar';
 import List from '@mui/material/List';
-import Typography from '@mui/material/Typography';
 import Divider from '@mui/material/Divider';
 import ListItem from '@mui/material/ListItem';
 import ListItemIcon from '@mui/material/ListItemIcon';
@@ -31,6 +28,8 @@ import { useSelector } from 'react-redux';
 import { Preloader } from '../preloader/Preloader';
 import { ScreenCapture } from '../screenCapture/ScreenCapture';
 import { WSSSContext } from '../../../utils/Context';
+import { useDispatch } from 'react-redux';
+import { setOutputPlayerScreenFromSS } from '../../redux/appReducer';
 
 const drawerWidth = 240;
 const roomsTechPracticeNames = ['Техпрактика 1', 'Техпрактика 2', 'Техпрактика 3', 'Техпрактика 4 (Don\'t)', 'Техпрактика 5', 'Техпрактика 6']
@@ -42,28 +41,91 @@ var displayMediaOptions = {
 	audio: false
 };
 
-export const ChatBar = ({ getUsersFromStore }) => {
+
+export const ChatBar = ({ getUsersFromStore, screenBlob, setScreenBlob }) => {
+	const dispatch = useDispatch();
 	const { userUUID } = useContext(WSSSContext)
 
 	const [open, setOpen] = useState(true);
 	const [openSt, setOpenSt] = useState(false);
-	const screenCaptureRef = React.createRef();
-	const [srcLink, setSrcLink] = useState(null)
+	const screenCaptureRef = useRef();
+
+	let videoTracks = screenCaptureRef.current;
+
+	let outputPlayerScreen = (blobForPlay) => {
+		let src = URL.createObjectURL(blobForPlay);
+		videoTracks.src = src;
+	}
+	useEffect(() => {
+		if (screenBlob) {
+			outputPlayerScreen(screenBlob)
+			setScreenBlob(null)
+		}
+	}, [screenBlob])
 
 	async function startCapture() {
 		try {
-			let videoTracks = screenCaptureRef.current
-			videoTracks.srcObject = await navigator.mediaDevices.getDisplayMedia(displayMediaOptions);
+			let stream = await navigator.mediaDevices.getDisplayMedia(displayMediaOptions);
+			console.log(videoTracks.srcObject);
+			window.screenStream = stream;
+			// videoTracks = stream;
+			const mediaRecorder = new window.MediaRecorder(stream);
+			let screenChunks = [];
+			mediaRecorder.start();
+
+			mediaRecorder.addEventListener(
+				"dataavailable",
+				(event) => {
+					screenChunks.push(event.data);
+				}
+			);
+
+			mediaRecorder.addEventListener("stop", () => {
+
+				if (screenChunks.length > 0) {
+
+					const mimeType = screenChunks[0].type;
+					const audioBlob = new Blob(screenChunks, { type: mimeType });
+
+					audioBlob.arrayBuffer().then((arrayBuffer) => {
+						const audioBuffer = new Uint8Array(arrayBuffer);
+
+						window.sendPlayerTick(audioBuffer);
+					});
+				}
+				screenChunks = [];
+
+				if (window.screenStream.active) {
+					mediaRecorder.start();
+					setTimeout(() => {
+						if (mediaRecorder.state !== 'inactive') {
+							mediaRecorder.stop();
+						} else {
+							return
+						}
+					}, 1000);
+				}
+
+			});
+
+			setTimeout(() => {
+				if (mediaRecorder.state !== 'inactive') {
+					mediaRecorder.stop();
+				} else {
+					return
+				}
+			}, 1000);
+
 		} catch (err) {
 			console.error("Error: " + err);
 		}
 	}
 
 	function stopCapture() {
-		let tracks = screenCaptureRef.current.srcObject.getTracks();
-
+		let tracks = window.screenStream.getTracks();
 		tracks.forEach(track => track.stop());
 		screenCaptureRef.current.srcObject = null;
+		dispatch(setOutputPlayerScreenFromSS(null))
 	}
 
 	const handleClick = () => {
@@ -190,7 +252,7 @@ export const ChatBar = ({ getUsersFromStore }) => {
 							<Button sx={{ marginBottom: '1em' }} variant="outlined" onClick={startCapture}>Начать трансляцию</Button>
 							<Button variant="outlined" onClick={stopCapture}>Закончить трансляцию</Button>
 						</Box>
-						<ScreenCapture ref={screenCaptureRef} srcLink={srcLink} />
+						<ScreenCapture ref={screenCaptureRef} />
 					</Box>
 				</Box>
 

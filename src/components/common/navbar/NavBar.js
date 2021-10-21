@@ -1,6 +1,5 @@
-import Axios from 'axios'
 import { BufferStream } from "buffer-stream-js";
-import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import React, { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { makeStyles } from "@material-ui/core/styles";
 import AppBar from "@material-ui/core/AppBar";
 import Toolbar from "@material-ui/core/Toolbar";
@@ -8,7 +7,7 @@ import Typography from "@material-ui/core/Typography";
 import Button from "@material-ui/core/Button";
 import IconButton from "@material-ui/core/IconButton";
 import MenuIcon from "@mui/icons-material/Menu";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import Backdrop from '@mui/material/Backdrop';
 import Box from '@mui/material/Box';
 import Modal from '@mui/material/Modal';
@@ -23,9 +22,9 @@ import {
 	FromSound_FromPlayerScene_PlayerVoice
 } from "../../socket/constants.js";
 import { WSSSContext } from "../../../utils/Context";
-import { setOutputPlayerVoiceFromClient, setOutputPlayerVoiceFromSS } from "../../redux/appReducer";
 import { setUserLeft, setUserJoined, setUsersFromList } from '../../redux/usersReducer.js';
 import { WSTransferTest } from './WSTransferTest.js';
+import { setOutputPlayerScreenFromSS } from "../../redux/appReducer.js";
 
 
 const useStyles = makeStyles(theme => ({
@@ -134,7 +133,7 @@ let outputPlayerVoice = blobForPlay => {
 	};
 }
 
-export const NavBar = ({ getUsersFromStore }) => {
+export const NavBar = ({ getUsersFromStore, setScreenBlob }) => {
 	const classes = useStyles();
 
 	const [openModal, setOpenModal] = useState(false);
@@ -277,9 +276,11 @@ export const NavBar = ({ getUsersFromStore }) => {
 						const user_from_voice = readPlayerFromPlayerList(message, 4, true);
 						// Parse Voice Body
 						const voiceBody = new Uint8Array(message.buffer.buffer, 21);
+						setScreenBlob(new Blob([voiceBody], {
+							type: "video/x-matroska;codecs=avc1",
+						}))
 						// Play Voice Body
 						outputPlayerVoice(voiceBody);
-						// dispatch(setOutputPlayerVoiceFromSS(voiceBody))
 						console.log(
 							"FromSound_FromPlayerScene_PlayerVoice => ",
 							user_from_voice

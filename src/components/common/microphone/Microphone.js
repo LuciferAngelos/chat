@@ -58,7 +58,6 @@ export default function Microphone({ size }) {
 		}).then((stream) => {
 			const mediaRecorder = new window.MediaRecorder(stream);
 			let audioChunks = [];
-			console.log(stream.getAudioTracks());
 			mediaRecorder.start();
 			window.str = stream
 
@@ -94,8 +93,8 @@ export default function Microphone({ size }) {
 							return
 						}
 					}, 1000);
-
 				}
+
 			});
 
 			setTimeout(() => {
@@ -110,36 +109,11 @@ export default function Microphone({ size }) {
 
 	}, [record, stopRecord])
 
-	const continueRecording = () => {
-		setRecord(true);
-
-
-	};
-
-
 	const startRecording = () => {
 		setRecord(true)
 		setStopRecord(false)
 	};
 
-	const stopRecording = () => {
-		setRecord(false);
-
-		// console.log(btnIsClicked, record, ' on stop');
-	};
-	function stopStream() {
-		if (!window.streamReference) return;
-
-		window.streamReference.getAudioTracks().forEach(function (track) {
-			track.stop();
-		});
-
-		window.streamReference.getVideoTracks().forEach(function (track) {
-			track.stop();
-		});
-
-		window.streamReference = null;
-	}
 	const totallyStop = () => {
 		setRecord(false);
 		setStopRecord(true);
