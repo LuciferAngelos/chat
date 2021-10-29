@@ -9,12 +9,13 @@ import StopIcon from "@mui/icons-material/Stop";
 import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
 import DialogActions from "@material-ui/core/DialogActions";
 import Grid from "@material-ui/core/Grid";
-import { green, red, blue } from "@material-ui/core/colors";
+import { red } from "@material-ui/core/colors";
 
 import "./microphone.css";
 import { Card } from "@material-ui/core";
 // import { setOutputPlayerVoiceFromClient, toggleOnDialog } from "../../redux/appReducer";
-import { useDispatch } from "react-redux";
+import Recorder from 'recorder-js';
+
 
 const useStyles = makeStyles(theme => ({
 	icon: {
@@ -30,108 +31,23 @@ const useStyles = makeStyles(theme => ({
 	}
 }));
 
-export default function Microphone({ size }) {
+export default function Microphone({ size, isAudio, setIsAudio }) {
 
-	const dispatch = useDispatch();
-
-	const [record, setRecord] = useState(false);
-	const [open, setOpen] = useState(false);
 	const [stopRecord, setStopRecord] = useState(true)
-	// const [audioChunks, setAudioChunks] = useState([]);
-
-	let audioChunks = [];
-
-	const [playerReady, setPlayerReady] = useState(false);
-	const [isPlaying, setIsPlaying] = useState(false);
-	const wavesurfer = useRef(null);
 
 
-	useEffect(() => {
-		if (stopRecord) return
 
-		navigator.mediaDevices.getUserMedia({
-			audio: {
-				echoCancellation: true,
-				noiseSuppression: true,
-				sampleRate: 44100
-			}
-		}).then((stream) => {
-			const mediaRecorder = new window.MediaRecorder(stream);
-			let audioChunks = [];
-			mediaRecorder.start();
-			window.str = stream
-
-			mediaRecorder.addEventListener(
-				"dataavailable",
-				(event) => {
-					audioChunks.push(event.data);
-
-				}
-			);
-
-			mediaRecorder.addEventListener("stop", () => {
-
-				if (audioChunks.length > 0) {
-
-					const mimeType = audioChunks[0].type;
-					const audioBlob = new Blob(audioChunks, { type: mimeType });
-
-					audioBlob.arrayBuffer().then((arrayBuffer) => {
-						const audioBuffer = new Uint8Array(arrayBuffer);
-
-						window.sendPlayerTick(audioBuffer);
-					});
-				}
-				audioChunks = [];
-
-				if (window.str !== null) {
-					mediaRecorder.start();
-					setTimeout(() => {
-						if (mediaRecorder.state !== 'inactive') {
-							mediaRecorder.stop();
-						} else {
-							return
-						}
-					}, 1000);
-				}
-
-			});
-
-			setTimeout(() => {
-				if (mediaRecorder.state !== 'inactive') {
-					mediaRecorder.stop();
-				} else {
-					return
-				}
-			}, 1000);
-
-		});
-
-	}, [record, stopRecord])
 
 	const startRecording = () => {
-		setRecord(true)
+		setIsAudio(true)
 		setStopRecord(false)
 	};
 
 	const totallyStop = () => {
-		setRecord(false);
+		setIsAudio(false);
 		setStopRecord(true);
-		window.str.getAudioTracks().forEach(function (track) {
-			track.stop();
-		});
-		window.str = null;
+
 	}
-
-	const onData = recordedBlob => {
-
-	};
-
-	const onStop = () => {
-
-	};
-
-
 
 	const classes = useStyles();
 
@@ -140,7 +56,7 @@ export default function Microphone({ size }) {
 			<Grid container justifyContent="center">
 				<Grid item>
 
-					{!record && stopRecord ?
+					{!isAudio && stopRecord ?
 						(
 							<IconButton onClick={startRecording}>
 								<MicIcon className={classes.icon} style={{ width: size, height: size }} />
@@ -154,42 +70,6 @@ export default function Microphone({ size }) {
 
 				</Grid>
 			</Grid>
-			<Card >
-				<ReactMic
-					record={record}
-					className={classes.reactmic}
-					visualSetting="frequencyBars"
-					echoCancellation={true}
-					noiseSuppression={true}
-					onStop={onStop}
-					onData={onData}
-					strokeColor="green"
-					backgroundColor="white"
-				/>
-				<DialogActions>
-					<Grid container>
-						<Grid item container justifyContent="center" xs={12}>
-							{!record && stopRecord && (
-								<IconButton onClick={startRecording}>
-									<FiberManualRecordIcon
-										style={{ color: red[500] }}
-										className={classes.icon}
-									/>
-								</IconButton>
-							)}
-
-							{record && !stopRecord && (
-								<IconButton onClick={totallyStop}>
-									<StopIcon className={classes.icon} />
-								</IconButton>
-							)}
-
-
-
-						</Grid>
-					</Grid>
-				</DialogActions>
-			</Card>
 		</>
 	);
 }

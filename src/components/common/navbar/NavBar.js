@@ -1,5 +1,5 @@
 import { BufferStream } from "buffer-stream-js";
-import React, { useContext, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { makeStyles } from "@material-ui/core/styles";
 import AppBar from "@material-ui/core/AppBar";
 import Toolbar from "@material-ui/core/Toolbar";
@@ -116,24 +116,24 @@ const readPlayerFromPlayerList = (
 // video.controls = "controls";
 // video.play();
 
-
 let outputPlayerVoice = blobForPlay => {
 	const outputBlob = new Blob([blobForPlay], {
 		type: "audio/webm;codecs=opus",
 	});
-
 	const fileReader = new FileReader();
 	fileReader.readAsDataURL(outputBlob);
 	fileReader.onloadend = () => {
+
 		const base64String = fileReader.result;
+
 		const audio = new Audio(base64String);
-		audio.addEventListener('canplaythrough', () => {
+		audio.addEventListener('canplay', () => {
 			audio.play();
 		})
 	};
 }
 
-export const NavBar = ({ getUsersFromStore, setScreenBlob }) => {
+export const NavBar = ({ getUsersFromStore, setScreenBlob, record, webSocket }) => {
 	const classes = useStyles();
 
 	const [openModal, setOpenModal] = useState(false);
@@ -152,51 +152,19 @@ export const NavBar = ({ getUsersFromStore, setScreenBlob }) => {
 
 	const [users, setUsers] = useState([])
 
-	//ref for ws
-	const webSocket = useRef(null)
-
 	useEffect(() => {
-		if (linkForSS) start();
+		if (linkForSS && webSocket) start();
 
 		function start() {
 
 			const linkSS = linkForSS ? linkForSS : console.log('Fetching the link...');
 
 			webSocketSS = new WebSocket(linkSS);
-			webSocket.current = webSocketSS;
+			if (webSocket) {
+				webSocket.current = webSocketSS;
+			}
 			window.webSocketSS = webSocketSS;
 			webSocketSS.binaryType = "arraybuffer";
-
-
-
-			// webSocketSS.onopen = () => {
-			// 	console.log('Sound Server WebSocket is connected and its state is ' + webSocketSS.readyState);
-			// 	console.log('Websocket open status is => ', opened);
-
-			// 	const array = new Uint8Array(4 + 36 + 1 + 36);
-
-			// 	const methodBuffer = new Uint8Array(
-			// 		new Uint32Array([ToGetway_FromUnknown_AuthSocket]).buffer
-			// 	);
-			// 	const sessionBuffer = new TextEncoder().encode(
-			// 		sessionTokenForSS
-			// 	);
-			// 	const authType = new Uint8Array(
-			// 		new Uint32Array(1).buffer
-			// 	);
-			// 	const targetUUID = new TextEncoder().encode(
-			// 		userUUIDForSS
-			// 	);
-
-			// 	array.set(methodBuffer, 0);
-			// 	array.set(sessionBuffer, 4);
-			// 	array.set(authType, 40);
-			// 	array.set(targetUUID, 41);
-
-			// 	if (!isWSOpen(webSocketSS)) return
-			// 	webSocketSS.send(array);
-			// };
-
 
 			webSocketSS.onopen = () => {
 				const array = new Uint8Array(4 + 36 + 1 + 36)
@@ -204,7 +172,6 @@ export const NavBar = ({ getUsersFromStore, setScreenBlob }) => {
 				const methodBuffer = new Uint8Array(new Uint32Array([ToGetway_FromUnknown_AuthSocket]).buffer)
 				const sessionBuffer = new TextEncoder().encode(sessionTokenForSS)
 				const locationUUIDBuffer = new TextEncoder().encode(lobbyUUID) // 36 LEN частное лобби или общее
-				console.log(lobbyUUID);
 				array.set(methodBuffer, 0)
 				array.set(sessionBuffer, 4)
 				array.set(new Uint8Array([getConnectionType]), 4 + 36)
@@ -259,9 +226,6 @@ export const NavBar = ({ getUsersFromStore, setScreenBlob }) => {
 
 						break;
 					case FromMovement_FromPlayerScene_PlayerJoin:
-
-						console.log('the message => ', message);
-
 						const user = readPlayerFromPlayerList(message, 4);
 						console.log("User Join: " + user.uuid);
 						dispatch(setUserJoined(user))
@@ -276,15 +240,9 @@ export const NavBar = ({ getUsersFromStore, setScreenBlob }) => {
 						const user_from_voice = readPlayerFromPlayerList(message, 4, true);
 						// Parse Voice Body
 						const voiceBody = new Uint8Array(message.buffer.buffer, 21);
-						setScreenBlob(new Blob([voiceBody], {
-							type: "video/x-matroska;codecs=avc1",
-						}))
 						// Play Voice Body
 						outputPlayerVoice(voiceBody);
-						console.log(
-							"FromSound_FromPlayerScene_PlayerVoice => ",
-							user_from_voice
-						);
+
 						break;
 					default:
 						console.log("Method: Unknown");
@@ -306,7 +264,6 @@ export const NavBar = ({ getUsersFromStore, setScreenBlob }) => {
 				if (e.code !== 1005) {
 					setTimeout(() => {
 						start()
-						console.log(webSocketSS.readyState);
 					}, 1000);
 				} else {
 					console.log('Socket was closed by user');
@@ -325,10 +282,6 @@ export const NavBar = ({ getUsersFromStore, setScreenBlob }) => {
 				state,
 				voiceBody
 			) => {
-
-				console.log('the voice body is ', position,
-					state,
-					voiceBody);
 
 				const array = new Uint8Array(4 + 12 + 1 + voiceBody.byteLength);
 
@@ -352,17 +305,25 @@ export const NavBar = ({ getUsersFromStore, setScreenBlob }) => {
 			window.sendPlayerTick = audioChunk => sendPlayerTick({ x: 0, y: 0, z: 0 }, 0, audioChunk)
 		}
 
-		return () => {
-			if (!webSocket.current && !linkForSS) {
-				return
-			} else {
-				webSocket.current.close();
-				webSocket.current = null;
 
-			}
+	}, [linkForSS, webSocket]);
+
+	useMemo(() => {
+		function pinging() {
+			const interval = setTimeout(() => {
+				if (!record) {
+					window.sendPlayerTick(new Uint8Array());
+					pinging();
+				} else {
+					clearTimeout(interval);
+				}
+			}, 4000)
 		}
 
-	}, [linkForSS]);
+		if (connected) {
+			pinging();
+		}
+	}, [record, connected])
 
 	useMemo(() => {
 		setUsers(getUsersFromStore)
@@ -381,7 +342,8 @@ export const NavBar = ({ getUsersFromStore, setScreenBlob }) => {
 					>
 						<MenuIcon />
 					</IconButton>
-					<WSTransferTest socket={webSocket.current} />
+					{webSocket && <WSTransferTest webSocket={webSocket} />
+					}
 					<Typography variant="h6" className={classes.title}>
 						Connection Status:
 						{connected ? ' Connected!' : ' Disconnected!'}

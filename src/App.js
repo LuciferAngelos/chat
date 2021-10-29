@@ -1,4 +1,4 @@
-import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { useRef, useEffect, useMemo, useState } from 'react';
 import './App.css';
 import { NavBar } from "./components/common/navbar/NavBar";
 import Microphone from "./components/common/microphone/Microphone";
@@ -24,6 +24,9 @@ function App() {
 
   const [loadinglink, setLoaded] = useState(false);
 
+  //ref for ws
+  const webSocket = useRef(null)
+
   const [contextWSSS, setContextWSSS] = useState({
     linkForSS: '',
     sessionTokenForSS: '',
@@ -31,9 +34,11 @@ function App() {
     type: '',
     lobbyUUID: ''
   })
-  const [screenBlob, setScreenBlob] = useState(null)
 
   const [lobbyUUID, setLobbyUUID] = useState('');
+  const [isAudio, setIsAudio] = useState(false);
+  const [isVideo, setIsVideo] = useState(false);
+
 
   //get initial data for GetWay and SoundServer
   const linkIsFetched = useSelector(state => state.app.linkIsFetched)
@@ -62,22 +67,27 @@ function App() {
 
 
 
-
   return (
     <WSSSContext.Provider value={contextWSSS}>
       <div className="home" style={{ textAlign: "center" }}>
 
         <NavBar
           getUsersFromStore={getUsersFromStore}
-          setScreenBlob={setScreenBlob}
+          record={isAudio}
+          setIsAudio={setIsAudio}
+          webSocket={webSocket}
         />
         <Switch>
 
           <Route exact path={mainRoot} render={() => <Main lobbyUUID={lobbyUUID} setLobbyUUID={setLobbyUUID} sessionUUID={sessionTokenForSS} />} />
           <Route exact path={mainRoot + `/lobby/${lobbyUUID}`} render={() => <ChatBar
             getUsersFromStore={getUsersFromStore}
-            screenBlob={screenBlob}
-            setScreenBlob={setScreenBlob}
+            isAudio={isAudio}
+            setIsAudio={setIsAudio}
+            isVideo={isVideo}
+            setIsVideo={setIsVideo}
+            linkForSS={linkForSS}
+            userUUID={userUUID}
           />} />
 
           <Route path='*'

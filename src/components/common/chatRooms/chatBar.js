@@ -15,7 +15,7 @@ import Button from '@mui/material/Button';
 
 import InboxIcon from '@mui/icons-material/MoveToInbox';
 import Microphone from '../microphone/Microphone';
-import { Grid } from '@material-ui/core';
+import { Grid, Typography } from '@material-ui/core';
 import VoiceChatIcon from '@mui/icons-material/VoiceChat';
 import { routesTechPractices, routesStands } from './../../../utils/routes'
 import './chatBar.css'
@@ -26,10 +26,11 @@ import { СhatRoom3 } from './rooms/СhatRoom3';
 import { СhatRoom4 } from './rooms/СhatRoom4';
 import { useSelector } from 'react-redux';
 import { Preloader } from '../preloader/Preloader';
-import { ScreenCapture } from '../screenCapture/ScreenCapture';
 import { WSSSContext } from '../../../utils/Context';
 import { useDispatch } from 'react-redux';
 import { setOutputPlayerScreenFromSS } from '../../redux/appReducer';
+import { initializePeerConnection } from '../peer/Peer';
+import { getVideoAudioStream } from '../../../utils/AudioVideoInitiator';
 
 const drawerWidth = 240;
 const roomsTechPracticeNames = ['Техпрактика 1', 'Техпрактика 2', 'Техпрактика 3', 'Техпрактика 4 (Don\'t)', 'Техпрактика 5', 'Техпрактика 6']
@@ -42,91 +43,109 @@ var displayMediaOptions = {
 };
 
 
-export const ChatBar = ({ getUsersFromStore, screenBlob, setScreenBlob }) => {
+export const ChatBar = ({ getUsersFromStore, isAudio, setIsAudio, isVideo, setIsVideo }) => {
 	const dispatch = useDispatch();
 	const { userUUID } = useContext(WSSSContext)
 
 	const [open, setOpen] = useState(true);
 	const [openSt, setOpenSt] = useState(false);
-	const screenCaptureRef = useRef();
+	const [peer, setPeer] = useState(null);
+	const [conn, setConn] = useState(null);
+	const [outcomeStream, setOutcomeStream] = useState(null);
+	const [incomeStream, setIncomeStream] = useState(null);
+	const myVideo = useRef();
+	const incomingVideo = useRef();
 
-	let videoTracks = screenCaptureRef.current;
-
-	let outputPlayerScreen = (blobForPlay) => {
-		let src = URL.createObjectURL(blobForPlay);
-		videoTracks.src = src;
+	function connectPeers() {
+		setConn(peer.connect(remotePeerId))
 	}
-	useEffect(() => {
-		if (screenBlob) {
-			outputPlayerScreen(screenBlob)
-			setScreenBlob(null)
-		}
-	}, [screenBlob])
 
-	async function startCapture() {
-		try {
-			let stream = await navigator.mediaDevices.getDisplayMedia(displayMediaOptions);
-			console.log(videoTracks.srcObject);
-			window.screenStream = stream;
-			// videoTracks = stream;
-			const mediaRecorder = new window.MediaRecorder(stream);
-			let screenChunks = [];
-			mediaRecorder.start();
+	function call(remotePeerId) {
+		connectPeers();
+		getVideoAudioStream(isVideo).then((stream) => {
+			// let audio = new Audio();
+			// audio.srcObject = stream;
+			// audio.autoplay = true;
+			setIncomeStream(stream);
 
-			mediaRecorder.addEventListener(
-				"dataavailable",
-				(event) => {
-					screenChunks.push(event.data);
-				}
-			);
+			let call = peer.call(remotePeerId, stream);
+			call.on('stream', (remoteStream) => {
 
-			mediaRecorder.addEventListener("stop", () => {
-
-				if (screenChunks.length > 0) {
-
-					const mimeType = screenChunks[0].type;
-					const audioBlob = new Blob(screenChunks, { type: mimeType });
-
-					audioBlob.arrayBuffer().then((arrayBuffer) => {
-						const audioBuffer = new Uint8Array(arrayBuffer);
-
-						window.sendPlayerTick(audioBuffer);
-					});
-				}
-				screenChunks = [];
-
-				if (window.screenStream.active) {
-					mediaRecorder.start();
-					setTimeout(() => {
-						if (mediaRecorder.state !== 'inactive') {
-							mediaRecorder.stop();
-						} else {
-							return
-						}
-					}, 1000);
-				}
+				let audio = new Audio();
+				audio.srcObject = remoteStream;
+				audio.autoplay = true;
 
 			});
+		})
+	}
 
-			setTimeout(() => {
-				if (mediaRecorder.state !== 'inactive') {
-					mediaRecorder.stop();
-				} else {
-					return
-				}
-			}, 1000);
+	//test
+	let [remotePeerId, setRemotePeerId] = useState('');
+	//test
 
-		} catch (err) {
-			console.error("Error: " + err);
+	useEffect(() => {
+		if (userUUID) {
+			setPeer(initializePeerConnection(userUUID));
 		}
+	}, [userUUID])
+
+	useEffect(() => {
+
+		if (peer) {
+
+			peer.on('open', function (id) {
+				console.log('My peer ID is: ' + id);
+			});
+
+			peer.on('connection', function (connection) {
+				setConn(connection);
+				console.log('connected with ', connection);
+			});
+
+			peer.on('call', (call) => {
+				getVideoAudioStream(isVideo, isAudio).then((stream) => {
+					// let audio = new Audio();
+					// audio.srcObject = stream;
+					// audio.autoplay = true;
+					setOutcomeStream(stream);
+					call.answer(stream);
+					call.on('stream', (remoteStream) => {
+						let audio = new Audio();
+
+						audio.srcObject = remoteStream;
+						audio.autoplay = true;
+					});
+				})
+			})
+
+		}
+
+	}, [peer])
+
+	useEffect(() => {
+		if (!outcomeStream) return;
+		if (!isAudio || isAudio) {
+			outcomeStream.getAudioTracks()[0].enabled = !outcomeStream.getAudioTracks()[0].enabled;
+		}
+	}, [outcomeStream, isAudio]);
+
+	useEffect(() => {
+		if (!incomeStream) return;
+		if (!isAudio || isAudio) {
+			incomeStream.getAudioTracks()[0].enabled = !incomeStream.getAudioTracks()[0].enabled;
+		}
+	}, [incomeStream, isAudio]);
+
+	const startCapture = () => {
+
 	}
 
-	function stopCapture() {
-		let tracks = window.screenStream.getTracks();
-		tracks.forEach(track => track.stop());
-		screenCaptureRef.current.srcObject = null;
-		dispatch(setOutputPlayerScreenFromSS(null))
+	const stopCapture = () => {
+
 	}
+
+
+
 
 	const handleClick = () => {
 		setOpen(!open);
@@ -203,12 +222,14 @@ export const ChatBar = ({ getUsersFromStore, screenBlob, setScreenBlob }) => {
 						</List>
 						<Divider />
 					</Box>
-					<Microphone size={'1.5em'} />
+					<Microphone size={'1.5em'} isAudio={isAudio}
+						setIsAudio={setIsAudio} />
 				</Drawer>
 				<Box sx={{ width: 'calc(100% - 240px)', display: 'flex', flexDirection: 'column' }}>
 					<Box sx={{ width: '100%', m: '1em auto', bgcolor: 'background.paper', display: 'flex', flexDirection: 'row' }}>
 						<Box component="main" sx={{ flexGrow: 1, p: 1 }}>
-							<Microphone size={'2em'} />
+							<Microphone size={'2em'} isAudio={isAudio}
+								setIsAudio={setIsAudio} />
 							<Switch>
 								{/* <Route exact path='/'> <Typography paragraph>Выберите комнату для чата слева</Typography></Route>
 						<Route exact path='/room1' component={ChatRoom1} />
@@ -249,10 +270,15 @@ export const ChatBar = ({ getUsersFromStore, screenBlob, setScreenBlob }) => {
 
 					<Box sx={{ width: '100%', margin: '0 auto', bgcolor: 'background.paper', display: 'flex', flexDirection: 'row' }}>
 						<Box sx={{ marginLeft: '.5em', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
+							<Typography paragraph>Мой ID {userUUID}</Typography>
 							<Button sx={{ marginBottom: '1em' }} variant="outlined" onClick={startCapture}>Начать трансляцию</Button>
 							<Button variant="outlined" onClick={stopCapture}>Закончить трансляцию</Button>
+							<Button variant="outlined" onClick={() => call(remotePeerId)}>Позвонить</Button>
+							<p>введи ИД здесь</p>
+							<input type="text" onChange={e => setRemotePeerId(e.target.value)} />
 						</Box>
-						<ScreenCapture ref={screenCaptureRef} />
+						<video ref={myVideo} autoPlay height="200" width='200'></video>
+						<video ref={incomingVideo} autoPlay height="400" width='100%'></video>
 					</Box>
 				</Box>
 
