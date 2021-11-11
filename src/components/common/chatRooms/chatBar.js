@@ -442,7 +442,7 @@ export const ChatBar = ({ getUsersFromStore, isAudio, setIsAudio, isVideo, setIs
 							</Switch>
 						</Box>
 						<Box
-							sx={{ marginTop: '2em', width: '100%', height: 200, maxWidth: 360, bgcolor: 'background.paper' }
+							sx={{ marginTop: '2em', width: '100%', maxWidth: 360, bgcolor: 'background.paper' }
 							}
 						>
 							<List>
