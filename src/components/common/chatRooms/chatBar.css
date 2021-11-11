@@ -1,3 +1,11 @@
 .activeLink{
 	background-color: #bcd3f1;
 }
+.internalVideo{
+	height: 200px;
+	width: 300px;
+}
+.externalVideo{
+	height: 500px;
+	width: 600px;
+}

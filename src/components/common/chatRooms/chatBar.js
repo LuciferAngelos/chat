@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import Box from '@mui/material/Box';
 import Drawer from '@mui/material/Drawer';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -30,7 +30,9 @@ import { WSSSContext } from '../../../utils/Context';
 import { useDispatch } from 'react-redux';
 import { setOutputPlayerScreenFromSS } from '../../redux/appReducer';
 import { initializePeerConnection } from '../peer/Peer';
-import { getVideoAudioStream } from '../../../utils/AudioVideoInitiator';
+import { getVideoAudioStream } from '../../../utils/audioVideoContent/AudioVideoInitiator';
+import { createVideo } from '../../../utils/audioVideoContent/VideoCreator';
+import { getScreen } from '../../../utils/audioVideoContent/ScreenShareInitiator';
 
 const drawerWidth = 240;
 const roomsTechPracticeNames = ['Техпрактика 1', 'Техпрактика 2', 'Техпрактика 3', 'Техпрактика 4 (Don\'t)', 'Техпрактика 5', 'Техпрактика 6']
@@ -46,36 +48,86 @@ var displayMediaOptions = {
 export const ChatBar = ({ getUsersFromStore, isAudio, setIsAudio, isVideo, setIsVideo }) => {
 	const dispatch = useDispatch();
 	const { userUUID } = useContext(WSSSContext)
-
+	const videoData = {};
 	const [open, setOpen] = useState(true);
 	const [openSt, setOpenSt] = useState(false);
 	const [peer, setPeer] = useState(null);
-	const [conn, setConn] = useState(null);
-	const [outcomeStream, setOutcomeStream] = useState(null);
-	const [incomeStream, setIncomeStream] = useState(null);
+	const [connId, setConnId] = useState([]);
+	const [outcomeStream, setOutcomeStream] = useState([]);
+	const [incomeStream, setIncomeStream] = useState([]);
+	const [myVideoAdded, setMyVideoAdded] = useState(false);
+	const [callType, setCallType] = useState('media');
+	const [currentPeer, setCurrentPeer] = useState(null);
+	const [peerList, setPeerList] = useState([])
+	//refs
 	const myVideo = useRef();
 	const incomingVideo = useRef();
+	const videoContainer = useRef();
 
 	function connectPeers() {
-		setConn(peer.connect(remotePeerId))
+		let conn = peer.connect(remotePeerId);
+		conn.on('open', () => {
+			conn.send('hi')
+		})
+		conn.on('data', (data) => {
+			console.log(data);
+		})
+		console.log(conn);
+	}
+	//рефакторить? 2 раза почти одинаковая функция
+
+	//0 for my video, 1 for incoming video
+	const startCapture = () => {
+		setCallType('screen');
+	}
+
+	useEffect(() => {
+		if (callType === 'screen') {
+			getScreen().then((stream) => {
+				if (stream) {
+					const videoTrack = stream.getVideoTracks()[0];
+					videoTrack.onended = () => {
+						stopCapture();
+					};
+					const sender = currentPeer.getSenders().find(s => s.track.kind === videoTrack.kind);
+					sender.replaceTrack(videoTrack);
+				}
+			}).catch(err => {
+				console.log('Unable to get display media ' + err);
+			})
+
+		}
+	}, [callType])
+
+	const stopCapture = () => {
+
+		const videoTrack = incomeStream !== [] ? incomeStream[0].getVideoTracks()[0] : outcomeStream[0].getVideoTracks()[0];
+		const sender = currentPeer.getSenders().find(s => s.track.kind === videoTrack.kind);
+		sender.replaceTrack(videoTrack);
+		setCallType('media');
+
 	}
 
 	function call(remotePeerId) {
+
 		connectPeers();
-		getVideoAudioStream(isVideo).then((stream) => {
-			// let audio = new Audio();
-			// audio.srcObject = stream;
-			// audio.autoplay = true;
-			setIncomeStream(stream);
 
-			let call = peer.call(remotePeerId, stream);
-			call.on('stream', (remoteStream) => {
-
-				let audio = new Audio();
-				audio.srcObject = remoteStream;
-				audio.autoplay = true;
-
-			});
+		getVideoAudioStream().then((stream) => {
+			if (stream) {
+				setIncomeStream([...incomeStream, stream]);
+				if (myVideoAdded === false) {
+					createVideo(userUUID, videoData, { id: userUUID, stream: stream }, videoContainer.current, 0);
+					setMyVideoAdded(true);
+				}
+				let call = peer.call(remotePeerId, stream);
+				call.on('stream', (remoteStream) => {
+					if (!peerList.includes(call.peer)) {
+						createVideo(userUUID, videoData, { id: call.peer, stream: remoteStream }, videoContainer.current, 1);
+						setCurrentPeer(call.peerConnection);
+						setPeerList([...peerList, call.peer]);
+					}
+				});
+			}
 		})
 	}
 
@@ -92,57 +144,80 @@ export const ChatBar = ({ getUsersFromStore, isAudio, setIsAudio, isVideo, setIs
 	useEffect(() => {
 
 		if (peer) {
-
 			peer.on('open', function (id) {
 				console.log('My peer ID is: ' + id);
 			});
 
 			peer.on('connection', function (connection) {
-				setConn(connection);
-				console.log('connected with ', connection);
+				setConnId([...connId, connection.peer]);
+				let data = peerList.filter(peer => peer !== connection.peer)
+				connection.send()
+
+				connection.on('data', function (data) {
+					connection.send(userUUID)
+					console.log(data);
+				})
 			});
 
 			peer.on('call', (call) => {
-				getVideoAudioStream(isVideo, isAudio).then((stream) => {
-					// let audio = new Audio();
-					// audio.srcObject = stream;
-					// audio.autoplay = true;
-					setOutcomeStream(stream);
-					call.answer(stream);
-					call.on('stream', (remoteStream) => {
-						let audio = new Audio();
+				if (callType === 'media') {
+					getVideoAudioStream().then((stream) => {
+						if (stream) {
+							// setOutcomeStream([...outcomeStream, stream]);
+							setIncomeStream([...incomeStream, stream]);
 
-						audio.srcObject = remoteStream;
-						audio.autoplay = true;
-					});
-				})
+							if (myVideoAdded === false) {
+								//0 for my video, 1 for incoming video
+								createVideo(userUUID, videoData, { id: userUUID, stream: stream }, videoContainer.current, 0);
+								setMyVideoAdded(true);
+							}
+							call.answer(stream);
+							call.on('stream', (remoteStream) => {
+								if (!peerList.includes(call.peer)) {
+									createVideo(userUUID, videoData, { id: call.peer, stream: remoteStream }, videoContainer.current, 1);
+									setCurrentPeer(call.peerConnection);
+									setPeerList([...peerList, call.peer]);
+								}
+							});
+						}
+					})
+				}
 			})
 
 		}
 
-	}, [peer])
+	}, [peer, myVideoAdded])
 
+	//Control of outcoming sound and video tracks. Mute by default
 	useEffect(() => {
 		if (!outcomeStream) return;
-		if (!isAudio || isAudio) {
-			outcomeStream.getAudioTracks()[0].enabled = !outcomeStream.getAudioTracks()[0].enabled;
-		}
-	}, [outcomeStream, isAudio]);
+
+		outcomeStream.forEach(stream => stream.getAudioTracks().forEach(track => {
+			track.enabled = isAudio;
+		}))
+		outcomeStream.forEach(stream => stream.getVideoTracks().forEach(track => {
+			track.enabled = isVideo;
+		}))
+
+	}, [outcomeStream, isAudio, isVideo]);
+
+
+	//Control of incoming sound and video tracks. Mute by default
 
 	useEffect(() => {
 		if (!incomeStream) return;
-		if (!isAudio || isAudio) {
-			incomeStream.getAudioTracks()[0].enabled = !incomeStream.getAudioTracks()[0].enabled;
-		}
-	}, [incomeStream, isAudio]);
 
-	const startCapture = () => {
+		incomeStream.forEach(stream => stream.getAudioTracks().forEach(track => {
+			track.enabled = isAudio;
+		}))
+		incomeStream.forEach(stream => stream.getVideoTracks().forEach(track => {
+			track.enabled = isVideo;
+		}))
+		console.log(peerList, currentPeer);
 
-	}
+	}, [incomeStream, isAudio, isVideo]);
 
-	const stopCapture = () => {
 
-	}
 
 
 
@@ -222,14 +297,24 @@ export const ChatBar = ({ getUsersFromStore, isAudio, setIsAudio, isVideo, setIs
 						</List>
 						<Divider />
 					</Box>
-					<Microphone size={'1.5em'} isAudio={isAudio}
-						setIsAudio={setIsAudio} />
+					<Microphone
+						size={'1.5em'}
+						isAudio={isAudio}
+						setIsAudio={setIsAudio}
+						isVideo={isVideo}
+						setIsVideo={setIsVideo}
+					/>
 				</Drawer>
 				<Box sx={{ width: 'calc(100% - 240px)', display: 'flex', flexDirection: 'column' }}>
 					<Box sx={{ width: '100%', m: '1em auto', bgcolor: 'background.paper', display: 'flex', flexDirection: 'row' }}>
 						<Box component="main" sx={{ flexGrow: 1, p: 1 }}>
-							<Microphone size={'2em'} isAudio={isAudio}
-								setIsAudio={setIsAudio} />
+							<Microphone
+								size={'2em'}
+								isAudio={isAudio}
+								setIsAudio={setIsAudio}
+								isVideo={isVideo}
+								setIsVideo={setIsVideo}
+							/>
 							<Switch>
 								{/* <Route exact path='/'> <Typography paragraph>Выберите комнату для чата слева</Typography></Route>
 						<Route exact path='/room1' component={ChatRoom1} />
@@ -259,8 +344,7 @@ export const ChatBar = ({ getUsersFromStore, isAudio, setIsAudio, isVideo, setIs
 														<ListItemText primary={user.uuid} />
 													</ListItemButton>
 												</ListItem>
-										}
-										)
+										})
 										:
 										<Preloader />
 								}
@@ -270,15 +354,20 @@ export const ChatBar = ({ getUsersFromStore, isAudio, setIsAudio, isVideo, setIs
 
 					<Box sx={{ width: '100%', margin: '0 auto', bgcolor: 'background.paper', display: 'flex', flexDirection: 'row' }}>
 						<Box sx={{ marginLeft: '.5em', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
-							<Typography paragraph>Мой ID {userUUID}</Typography>
+							<Typography paragraph>Мой ID </Typography>
+							<Typography paragraph>{userUUID}</Typography>
 							<Button sx={{ marginBottom: '1em' }} variant="outlined" onClick={startCapture}>Начать трансляцию</Button>
 							<Button variant="outlined" onClick={stopCapture}>Закончить трансляцию</Button>
 							<Button variant="outlined" onClick={() => call(remotePeerId)}>Позвонить</Button>
 							<p>введи ИД здесь</p>
 							<input type="text" onChange={e => setRemotePeerId(e.target.value)} />
 						</Box>
-						<video ref={myVideo} autoPlay height="200" width='200'></video>
-						<video ref={incomingVideo} autoPlay height="400" width='100%'></video>
+						<Box ref={videoContainer} sx={{ marginLeft: '.5em', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
+
+						</Box>
+
+						{/* <video ref={myVideo} autoPlay height="200" width='200'></video>
+							<video ref={incomingVideo} autoPlay height="400" width='100%'></video> */}
 					</Box>
 				</Box>
 

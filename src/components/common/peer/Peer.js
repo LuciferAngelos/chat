@@ -4,10 +4,10 @@ import Peer from 'peerjs';
 
 export const initializePeerConnection = (userUUID, linkForSS) => {
 	return new Peer(userUUID, {
-		// host: '/',
-		// debug: 1,
-		// port: 10010,
-		// path: '/peer',
-		secure: true
+		host: '/',
+		proxied: true,
+		debug: 1,
+		port: 10000,
+		path: '/sound/peer',
 	});
 }

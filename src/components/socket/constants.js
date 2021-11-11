@@ -2,7 +2,7 @@
 //Probably needs to be switched to '/'
 export const mainRoot = '/chat'
 
-export const getWayWebSocket = "wss://getway.dev.viexpo.ru:8010";
+export const getWayWebSocket = "wss://getway.dev.viexpo.ru/service/getway";
 
 
 export const CONST_X_VIEXPO_INTERNAL_TOKEN = 'x-viexpo-internal-token-test'

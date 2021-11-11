@@ -1,20 +1,15 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
-import { ReactMic } from "react-mic";
 
 import { makeStyles } from "@material-ui/core/styles";
 import MicIcon from "@mui/icons-material/Mic";
 import MicOffIcon from '@mui/icons-material/MicOff';
 import IconButton from "@material-ui/core/IconButton";
-import StopIcon from "@mui/icons-material/Stop";
-import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
-import DialogActions from "@material-ui/core/DialogActions";
+import VideocamIcon from '@mui/icons-material/Videocam';
+import VideocamOffIcon from '@mui/icons-material/VideocamOff';
 import Grid from "@material-ui/core/Grid";
-import { red } from "@material-ui/core/colors";
 
 import "./microphone.css";
-import { Card } from "@material-ui/core";
 // import { setOutputPlayerVoiceFromClient, toggleOnDialog } from "../../redux/appReducer";
-import Recorder from 'recorder-js';
 
 
 const useStyles = makeStyles(theme => ({
@@ -31,22 +26,22 @@ const useStyles = makeStyles(theme => ({
 	}
 }));
 
-export default function Microphone({ size, isAudio, setIsAudio }) {
-
-	const [stopRecord, setStopRecord] = useState(true)
+export default function Microphone({ size, isAudio, setIsAudio, isVideo, setIsVideo }) {
 
 
-
-
-	const startRecording = () => {
+	const startAudio = () => {
 		setIsAudio(true)
-		setStopRecord(false)
 	};
 
-	const totallyStop = () => {
+	const stopAudio = () => {
 		setIsAudio(false);
-		setStopRecord(true);
+	}
+	const startVideo = () => {
+		setIsVideo(true)
+	};
 
+	const stopVideo = () => {
+		setIsVideo(false);
 	}
 
 	const classes = useStyles();
@@ -56,14 +51,24 @@ export default function Microphone({ size, isAudio, setIsAudio }) {
 			<Grid container justifyContent="center">
 				<Grid item>
 
-					{!isAudio && stopRecord ?
+					{!isVideo ?
 						(
-							<IconButton onClick={startRecording}>
+							<IconButton onClick={startVideo}>
+								<VideocamIcon className={classes.icon} style={{ width: size, height: size }} />
+							</IconButton>
+						)
+						:
+						<IconButton onClick={stopVideo}>
+							<VideocamOffIcon className={classes.icon} style={{ width: size, height: size }} />
+						</IconButton>}
+					{!isAudio ?
+						(
+							<IconButton onClick={startAudio}>
 								<MicIcon className={classes.icon} style={{ width: size, height: size }} />
 							</IconButton>
 						)
 						:
-						<IconButton onClick={totallyStop}>
+						<IconButton onClick={stopAudio}>
 							<MicOffIcon className={classes.icon} style={{ width: size, height: size }} />
 						</IconButton>}
 
