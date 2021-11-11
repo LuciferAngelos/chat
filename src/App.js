@@ -5,7 +5,6 @@ import Microphone from "./components/common/microphone/Microphone";
 import { Switch, Route, Redirect } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { getWayConnection } from './components/socket/getWayConnect';
-import { sendPlayerTick } from './components/socket/serverConnection';
 import { Preloader } from './components/common/preloader/Preloader'
 import { getWayWebSocket, mainRoot } from './components/socket/constants';
 import { WSSSContext } from './utils/Context';

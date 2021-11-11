@@ -2,7 +2,6 @@ export const createVideo = (myId, videoContainer, createObj, videoDestination, w
 	if (!videoContainer[createObj.id]) {
 		videoContainer[createObj.id] = { ...createObj };
 
-		console.log(videoContainer);
 		const roomContainer = videoDestination;
 		const video = document.createElement('video');
 

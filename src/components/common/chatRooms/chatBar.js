@@ -34,23 +34,23 @@ import { getVideoAudioStream } from '../../../utils/audioVideoContent/AudioVideo
 import { createVideo } from '../../../utils/audioVideoContent/VideoCreator';
 import { getScreen } from '../../../utils/audioVideoContent/ScreenShareInitiator';
 
-const drawerWidth = 240;
-const roomsTechPracticeNames = ['Техпрактика 1', 'Техпрактика 2', 'Техпрактика 3', 'Техпрактика 4 (Don\'t)', 'Техпрактика 5', 'Техпрактика 6']
 
-var displayMediaOptions = {
-	video: {
-		cursor: "always"
-	},
-	audio: false
-};
+//удалить? для чата
+import AppBar from '@mui/material/AppBar';
+import Toolbar from '@mui/material/Toolbar';
+import TextField from '@mui/material/TextField';
+import SendIcon from '@mui/icons-material/Send';
+import { timeFormatHelper } from '../../../utils/TimeFormatter'
+
+const drawerWidth = 360;
+const roomsTechPracticeNames = ['Техпрактика 1', 'Техпрактика 2', 'Техпрактика 3', 'Техпрактика 4 (Don\'t)', 'Техпрактика 5', 'Техпрактика 6']
 
 
 export const ChatBar = ({ getUsersFromStore, isAudio, setIsAudio, isVideo, setIsVideo }) => {
 	const dispatch = useDispatch();
 	const { userUUID } = useContext(WSSSContext)
 	const videoData = {};
-	const [open, setOpen] = useState(true);
-	const [openSt, setOpenSt] = useState(false);
+
 	const [peer, setPeer] = useState(null);
 	const [connId, setConnId] = useState([]);
 	const [outcomeStream, setOutcomeStream] = useState([]);
@@ -58,11 +58,37 @@ export const ChatBar = ({ getUsersFromStore, isAudio, setIsAudio, isVideo, setIs
 	const [myVideoAdded, setMyVideoAdded] = useState(false);
 	const [callType, setCallType] = useState('media');
 	const [currentPeer, setCurrentPeer] = useState(null);
-	const [peerList, setPeerList] = useState([])
+	const [peerList, setPeerList] = useState([]);
+
 	//refs
-	const myVideo = useRef();
-	const incomingVideo = useRef();
 	const videoContainer = useRef();
+
+
+	//for chat
+	const [connection, setConnection] = useState(null);
+	const [messages, setMessages] = useState([])
+	const messageBox = useRef()
+
+
+	const handleSendMessage = (e) => {
+		e.preventDefault();
+		if (connection) {
+			//зарефакторить?
+			setMessages(messages => ([...messages, {
+				me: true,
+				currentMinutes: timeFormatHelper(new Date().getMinutes()),
+				currentHour: timeFormatHelper(new Date().getHours()),
+				message: messageBox.current.value
+			}]));
+
+			if (messageBox.current.value) {
+				connection.send(messageBox.current.value);
+				messageBox.current.value = '';
+			} else {
+				return
+			}
+		}
+	}
 
 	function connectPeers() {
 		let conn = peer.connect(remotePeerId);
@@ -110,15 +136,17 @@ export const ChatBar = ({ getUsersFromStore, isAudio, setIsAudio, isVideo, setIs
 
 	function call(remotePeerId) {
 
-		connectPeers();
+		// connectPeers();
+
+		setConnection(peer.connect(remotePeerId));
 
 		getVideoAudioStream().then((stream) => {
 			if (stream) {
 				setIncomeStream([...incomeStream, stream]);
-				if (myVideoAdded === false) {
-					createVideo(userUUID, videoData, { id: userUUID, stream: stream }, videoContainer.current, 0);
-					setMyVideoAdded(true);
-				}
+				// if (myVideoAdded === false) {
+				createVideo(userUUID, videoData, { id: userUUID, stream: stream }, videoContainer.current, 0);
+				setMyVideoAdded(true);
+				// }
 				let call = peer.call(remotePeerId, stream);
 				call.on('stream', (remoteStream) => {
 					if (!peerList.includes(call.peer)) {
@@ -149,14 +177,18 @@ export const ChatBar = ({ getUsersFromStore, isAudio, setIsAudio, isVideo, setIs
 			});
 
 			peer.on('connection', function (connection) {
-				setConnId([...connId, connection.peer]);
-				let data = peerList.filter(peer => peer !== connection.peer)
-				connection.send()
+				//для одного
+				setConnection(connection);
 
-				connection.on('data', function (data) {
-					connection.send(userUUID)
-					console.log(data);
-				})
+
+				// setConnId([...connId, connection.peer]);
+				// let data = peerList.filter(peer => peer !== connection.peer)
+				// connection.send()
+
+				// connection.on('data', function (data) {
+				// 	connection.send(userUUID)
+				// 	console.log(data);
+				// })
 			});
 
 			peer.on('call', (call) => {
@@ -166,11 +198,11 @@ export const ChatBar = ({ getUsersFromStore, isAudio, setIsAudio, isVideo, setIs
 							// setOutcomeStream([...outcomeStream, stream]);
 							setIncomeStream([...incomeStream, stream]);
 
-							if (myVideoAdded === false) {
-								//0 for my video, 1 for incoming video
-								createVideo(userUUID, videoData, { id: userUUID, stream: stream }, videoContainer.current, 0);
-								setMyVideoAdded(true);
-							}
+							// if (myVideoAdded === false) {
+							//0 for my video, 1 for incoming video
+							createVideo(userUUID, videoData, { id: userUUID, stream: stream }, videoContainer.current, 0);
+							setMyVideoAdded(true);
+							// }
 							call.answer(stream);
 							call.on('stream', (remoteStream) => {
 								if (!peerList.includes(call.peer)) {
@@ -184,9 +216,26 @@ export const ChatBar = ({ getUsersFromStore, isAudio, setIsAudio, isVideo, setIs
 				}
 			})
 
+			peer.on('error', err => {
+				console.log(err);
+			})
+
 		}
 
-	}, [peer, myVideoAdded])
+	}, [peer])
+
+	useEffect(() => {
+		if (connection) {
+			connection.on('data', (mess) => {
+				setMessages(messages => ([...messages, {
+					me: false,
+					currentMinutes: timeFormatHelper(new Date().getMinutes()),
+					currentHour: timeFormatHelper(new Date().getHours()),
+					message: mess
+				}]))
+			})
+		}
+	}, [connection])
 
 	//Control of outcoming sound and video tracks. Mute by default
 	useEffect(() => {
@@ -218,23 +267,91 @@ export const ChatBar = ({ getUsersFromStore, isAudio, setIsAudio, isVideo, setIs
 	}, [incomeStream, isAudio, isVideo]);
 
 
-
-
-
-
-	const handleClick = () => {
-		setOpen(!open);
-	}
-	const handleClickSt = () => {
-
-		setOpenSt(!openSt);
-	}
-
 	return (
 		<Grid >
 			<Box sx={{ display: 'flex' }}>
-				<CssBaseline />
+
+				<AppBar position="fixed" sx={{
+					zIndex: (theme) => theme.zIndex.drawer + 1, width: drawerWidth, left: 0
+				}}>
+					<Toolbar sx={{ justifyContent: 'center' }}>
+						<Typography variant="h6" noWrap component="div" >
+							Чат
+						</Typography>
+					</Toolbar>
+				</AppBar>
+
 				<Drawer
+					sx={{
+						width: drawerWidth,
+						flexShrink: 0,
+						'& .MuiDrawer-paper': {
+							width: drawerWidth,
+							boxSizing: 'border-box',
+						},
+					}}
+					variant="permanent"
+					anchor="left"
+				>
+					<Divider />
+					<List
+						id='chat-list'
+						sx={{ marginTop: '4em', overflowY: 'scroll', maxHeight: '75%' }} >
+						{messages.map((dataObj, index) => (
+							<ListItem key={index}>
+								{dataObj.me ?
+									(<ListItemText><span style={{ color: '#5271e3', fontWeight: 'bold' }}>Я</span> в {dataObj.currentHour}:{dataObj.currentMinutes} :
+										<Typography > {dataObj.message}</Typography>
+									</ListItemText>)
+									:
+									(<ListItemText><span style={{ color: '#ba32b3', fontWeight: 'bold' }}>На том конце провода</span> в {dataObj.currentHour}:{dataObj.currentMinutes} :
+										<Typography > {dataObj.message}</Typography>
+									</ListItemText>)
+								}
+
+							</ListItem>
+						))}
+					</List>
+					<Box
+						component="form"
+						sx={{
+							'& .MuiTextField-root': { m: 1, width: '25ch' },
+						}}
+						noValidate
+						autoComplete="off"
+						sx={{
+							position: 'fixed',
+							bottom: '.5%',
+							width: drawerWidth,
+						}}
+					>
+						<TextField
+							id="outlined-multiline-flexible"
+							label="Ваше сообщение"
+							multiline
+							rows={3}
+							inputProps={{
+								style: { paddingRight: '10%' },
+								ref: messageBox
+							}}
+							sx={{
+								width: '100%'
+							}}
+						/>
+						<Button
+							type='submit'
+							onClick={handleSendMessage}
+							sx={{
+								position: 'absolute',
+								bottom: '25%',
+								right: 0
+							}}
+						>
+							<SendIcon />
+						</Button>
+					</Box>
+				</Drawer>
+				{/* <Drawer
 					variant="permanent"
 					sx={{
 						width: drawerWidth,
@@ -304,7 +421,7 @@ export const ChatBar = ({ getUsersFromStore, isAudio, setIsAudio, isVideo, setIs
 						isVideo={isVideo}
 						setIsVideo={setIsVideo}
 					/>
-				</Drawer>
+				</Drawer> */}
 				<Box sx={{ width: 'calc(100% - 240px)', display: 'flex', flexDirection: 'column' }}>
 					<Box sx={{ width: '100%', m: '1em auto', bgcolor: 'background.paper', display: 'flex', flexDirection: 'row' }}>
 						<Box component="main" sx={{ flexGrow: 1, p: 1 }}>
@@ -325,7 +442,8 @@ export const ChatBar = ({ getUsersFromStore, isAudio, setIsAudio, isVideo, setIs
 							</Switch>
 						</Box>
 						<Box
-							sx={{ marginTop: '2em', width: '100%', height: 200, maxWidth: 360, bgcolor: 'background.paper' }}
+							sx={{ marginTop: '2em', width: '100%', height: 200, maxWidth: 360, bgcolor: 'background.paper' }
+							}
 						>
 							<List>
 								<ListItemText primary={'Список пользователей'} />
@@ -349,29 +467,28 @@ export const ChatBar = ({ getUsersFromStore, isAudio, setIsAudio, isVideo, setIs
 										<Preloader />
 								}
 							</List>
-						</Box>
-					</Box>
+						</Box >
+					</Box >
 
-					<Box sx={{ width: '100%', margin: '0 auto', bgcolor: 'background.paper', display: 'flex', flexDirection: 'row' }}>
+					<Box sx={{ width: '100%', margin: '0 auto', bgcolor: 'background.paper', display: 'flex', flexDirection: 'row' }
+					}>
 						<Box sx={{ marginLeft: '.5em', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
 							<Typography paragraph>Мой ID </Typography>
 							<Typography paragraph>{userUUID}</Typography>
 							<Button sx={{ marginBottom: '1em' }} variant="outlined" onClick={startCapture}>Начать трансляцию</Button>
-							<Button variant="outlined" onClick={stopCapture}>Закончить трансляцию</Button>
+							<Button sx={{ marginBottom: '1em' }} variant="outlined" onClick={stopCapture}>Закончить трансляцию</Button>
 							<Button variant="outlined" onClick={() => call(remotePeerId)}>Позвонить</Button>
-							<p>введи ИД здесь</p>
+							<p>Введите ИД здесь</p>
 							<input type="text" onChange={e => setRemotePeerId(e.target.value)} />
 						</Box>
 						<Box ref={videoContainer} sx={{ marginLeft: '.5em', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
 
 						</Box>
 
-						{/* <video ref={myVideo} autoPlay height="200" width='200'></video>
-							<video ref={incomingVideo} autoPlay height="400" width='100%'></video> */}
-					</Box>
-				</Box>
+					</Box >
+				</Box >
 
-			</Box>
-		</Grid>
+			</Box >
+		</Grid >
 	);
 }

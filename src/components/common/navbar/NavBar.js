@@ -334,16 +334,15 @@ export const NavBar = ({ getUsersFromStore, setScreenBlob, record, webSocket }) 
 		<div className={classes.root}>
 			<AppBar position="static">
 				<Toolbar>
-					<IconButton
+					{/* <IconButton
 						edge="start"
 						className={classes.menuButton}
 						color="inherit"
 						aria-label="menu"
 					>
 						<MenuIcon />
-					</IconButton>
-					{webSocket && <WSTransferTest webSocket={webSocket} />
-					}
+					</IconButton> */}
+					{/* {webSocket && <WSTransferTest webSocket={webSocket} />} */}
 					<Typography variant="h6" className={classes.title}>
 						Connection Status:
 						{connected ? ' Connected!' : ' Disconnected!'}
