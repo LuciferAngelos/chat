@@ -41,6 +41,7 @@ import Toolbar from '@mui/material/Toolbar';
 import TextField from '@mui/material/TextField';
 import SendIcon from '@mui/icons-material/Send';
 import { timeFormatHelper } from '../../../utils/TimeFormatter'
+import { Tooltip } from '@mui/material';
 
 const drawerWidth = 360;
 const roomsTechPracticeNames = ['Техпрактика 1', 'Техпрактика 2', 'Техпрактика 3', 'Техпрактика 4 (Don\'t)', 'Техпрактика 5', 'Техпрактика 6']
@@ -59,6 +60,7 @@ export const ChatBar = ({ getUsersFromStore, isAudio, setIsAudio, isVideo, setIs
 	const [callType, setCallType] = useState('media');
 	const [currentPeer, setCurrentPeer] = useState(null);
 	const [peerList, setPeerList] = useState([]);
+	const [buttonDisabled, setButtonDisabled] = useState(true)
 
 	//refs
 	const videoContainer = useRef();
@@ -139,6 +141,7 @@ export const ChatBar = ({ getUsersFromStore, isAudio, setIsAudio, isVideo, setIs
 		// connectPeers();
 
 		setConnection(peer.connect(remotePeerId));
+		setButtonDisabled(false);
 
 		getVideoAudioStream().then((stream) => {
 			if (stream) {
@@ -155,6 +158,9 @@ export const ChatBar = ({ getUsersFromStore, isAudio, setIsAudio, isVideo, setIs
 						setPeerList([...peerList, call.peer]);
 					}
 				});
+				call.on('close', () => {
+					setButtonDisabled(true);
+				})
 			}
 		})
 	}
@@ -189,6 +195,8 @@ export const ChatBar = ({ getUsersFromStore, isAudio, setIsAudio, isVideo, setIs
 				// 	connection.send(userUUID)
 				// 	console.log(data);
 				// })
+
+				setButtonDisabled(false)
 			});
 
 			peer.on('call', (call) => {
@@ -214,6 +222,10 @@ export const ChatBar = ({ getUsersFromStore, isAudio, setIsAudio, isVideo, setIs
 						}
 					})
 				}
+			})
+
+			peer.on('close', () => {
+				console.log('closed');
 			})
 
 			peer.on('error', err => {
@@ -475,9 +487,31 @@ export const ChatBar = ({ getUsersFromStore, isAudio, setIsAudio, isVideo, setIs
 						<Box sx={{ marginLeft: '.5em', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
 							<Typography paragraph>Мой ID </Typography>
 							<Typography paragraph>{userUUID}</Typography>
-							<Button sx={{ marginBottom: '1em' }} variant="outlined" onClick={startCapture}>Начать трансляцию</Button>
-							<Button sx={{ marginBottom: '1em' }} variant="outlined" onClick={stopCapture}>Закончить трансляцию</Button>
-							<Button variant="outlined" onClick={() => call(remotePeerId)}>Позвонить</Button>
+
+							<Tooltip title={'Чтобы управлять трансляцией экрана, позвоните кому-нибудь'} placement='right-start'>
+								<span style={{ display: 'block' }}>
+									<Button
+										sx={{ marginBottom: '1em', width: '100%' }}
+										disabled={buttonDisabled}
+										variant="outlined"
+										onClick={startCapture}>Начать трансляцию
+									</Button>
+								</span>
+							</Tooltip>
+							<Tooltip title={'Чтобы управлять трансляцией экрана, позвоните кому-нибудь'} placement='right-start'>
+								<span style={{ display: 'block' }}>
+									<Button
+										sx={{ marginBottom: '1em', width: '100%' }}
+										disabled={buttonDisabled}
+										variant="outlined"
+										onClick={stopCapture}>Закончить трансляцию
+									</Button>
+								</span>
+							</Tooltip>
+
+							<Tooltip title={'Вставьте ID адресата в поле ниже и нажмите "Позвонить"'} placement='bottom-start'>
+								<Button variant="outlined" onClick={() => call(remotePeerId)}>Позвонить</Button>
+							</Tooltip>
 							<p>Введите ИД здесь</p>
 							<input type="text" onChange={e => setRemotePeerId(e.target.value)} />
 						</Box>
