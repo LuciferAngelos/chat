@@ -6,12 +6,13 @@ import { Switch, Route, Redirect } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { getWayConnection } from './components/socket/getWayConnect';
 import { Preloader } from './components/common/preloader/Preloader'
-import { getWayWebSocket, mainRoot } from './components/socket/constants';
+import { getWayWebSocket, mainRoot, mainServerRoot, pathForWebSocket } from './components/socket/constants';
 import { WSSSContext } from './utils/Context';
 import { initializeApp, setLinkForSS } from './components/redux/appReducer';
 import { chatRoom1 } from './components/common/chatRooms/rooms/СhatRoom1';
 import { ChatBar } from './components/common/chatRooms/chatBar';
 import { Main } from './components/common/main/Main'
+import { io } from 'socket.io-client';
 
 function App() {
 
@@ -21,10 +22,11 @@ function App() {
     dispatch(initializeApp());
   }, [])
 
-  const [loadinglink, setLoaded] = useState(false);
 
   //ref for ws
-  const webSocket = useRef(null)
+  const socket = useRef(io(`https://${mainServerRoot}/`, {
+    path: pathForWebSocket,
+  }));
 
   const [contextWSSS, setContextWSSS] = useState({
     linkForSS: '',
@@ -40,7 +42,6 @@ function App() {
 
 
   //get initial data for GetWay and SoundServer
-  const linkIsFetched = useSelector(state => state.app.linkIsFetched)
   const linkForSS = useSelector(state => state.app.linkForSS)
   const sessionTokenForSS = useSelector(state => state.users.self.session_uuid)
   const userUUID = useSelector(state => state.users.self.user_uuid)
@@ -50,20 +51,8 @@ function App() {
   const getUsersFromStore = useSelector(state => state.users.users)
 
   useMemo(() => {
-    dispatch(setLinkForSS);
     setContextWSSS({ linkForSS, sessionTokenForSS, userUUID, getConnectionType, lobbyUUID })
-
   }, [linkForSS, sessionTokenForSS, userUUID, getConnectionType, lobbyUUID])
-
-  // useEffect(() => {
-  //   getWayConnection()
-  // }, [])
-
-
-  useMemo(() => {
-    setLoaded(linkIsFetched)
-  }, [linkIsFetched]);
-
 
 
   return (
@@ -74,7 +63,6 @@ function App() {
           getUsersFromStore={getUsersFromStore}
           record={isAudio}
           setIsAudio={setIsAudio}
-          webSocket={webSocket}
         />
         <Switch>
 
@@ -86,7 +74,7 @@ function App() {
             isVideo={isVideo}
             setIsVideo={setIsVideo}
             linkForSS={linkForSS}
-            userUUID={userUUID}
+            socket={socket.current}
           />} />
 
           <Route path='*'

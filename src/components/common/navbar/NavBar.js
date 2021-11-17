@@ -133,7 +133,7 @@ let outputPlayerVoice = blobForPlay => {
 	};
 }
 
-export const NavBar = ({ getUsersFromStore, setScreenBlob, record, webSocket }) => {
+export const NavBar = ({ getUsersFromStore, setScreenBlob, record }) => {
 	const classes = useStyles();
 
 	const [openModal, setOpenModal] = useState(false);
@@ -151,18 +151,19 @@ export const NavBar = ({ getUsersFromStore, setScreenBlob, record, webSocket }) 
 	//get self uuid
 
 	const [users, setUsers] = useState([])
-
 	useEffect(() => {
-		if (linkForSS && webSocket) start();
+		if (linkForSS) start();
 
 		function start() {
 
 			const linkSS = linkForSS ? linkForSS : console.log('Fetching the link...');
 
 			webSocketSS = new WebSocket(linkSS);
-			if (webSocket) {
-				webSocket.current = webSocketSS;
-			}
+			// получить вс из пропсов
+
+			// if (webSocket) {
+			// 	webSocket.current = webSocketSS;
+			// }
 			window.webSocketSS = webSocketSS;
 			webSocketSS.binaryType = "arraybuffer";
 
@@ -306,7 +307,7 @@ export const NavBar = ({ getUsersFromStore, setScreenBlob, record, webSocket }) 
 		}
 
 
-	}, [linkForSS, webSocket]);
+	}, [linkForSS]);
 
 	useMemo(() => {
 		function pinging() {

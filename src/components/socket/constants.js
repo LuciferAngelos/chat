@@ -1,6 +1,9 @@
 //variable for main root because of GHP deploy. 
 //Probably needs to be switched to '/'
-export const mainRoot = '/chat'
+export const mainRoot = '/chat';
+export const mainServerRoot = 'getway.dev.viexpo.ru';
+export const pathForPeer = '/sound/peer';
+export const pathForWebSocket = '/sound/socket.io';
 
 export const getWayWebSocket = "wss://getway.dev.viexpo.ru/service/getway";
 

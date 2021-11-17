@@ -1,13 +1,14 @@
 import React from 'react';
 import Peer from 'peerjs';
+import { mainServerRoot, pathForPeer } from '../../socket/constants';
 
 
-export const initializePeerConnection = (userUUID, linkForSS) => {
+export const initializePeerConnection = (userUUID) => {
 	return new Peer(userUUID, {
-		// host: '/',
-		// proxied: true,
-		// debug: 1,
-		// port: 10000,
-		// path: '/sound/peer',
+		host: mainServerRoot,
+		debug: 1,
+		port: 443,
+		path: pathForPeer,
+		secure: true
 	});
 }

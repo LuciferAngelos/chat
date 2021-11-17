@@ -18,6 +18,7 @@ export const createVideo = (myId, videoContainer, createObj, videoDestination, w
 		video.autoplay = true;
 		if (myId === createObj.id) video.muted = true;
 		roomContainer.append(video);
+		return video
 	} else {
 		return
 	}
