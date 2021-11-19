@@ -16,6 +16,7 @@ export const createVideo = (myId, videoContainer, createObj, videoDestination, w
 		video.srcObject = videoContainer[createObj.id].stream;
 		video.id = createObj.id;
 		video.autoplay = true;
+		video.controls = true;
 		if (myId === createObj.id) video.muted = true;
 		roomContainer.append(video);
 		return video

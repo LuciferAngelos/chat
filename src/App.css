@@ -1,5 +1,6 @@
 #outlined-multiline-flexible::-webkit-scrollbar,
-#chat-list::-webkit-scrollbar{
+#chat-list::-webkit-scrollbar,
+#voice-chat-list::-webkit-scrollbar{
   width: 0px; 
   background: transparent; 
 }
