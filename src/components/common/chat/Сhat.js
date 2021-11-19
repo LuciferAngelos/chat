@@ -91,8 +91,8 @@ export const Chat = ({ getUsersFromStore }) => {
 	}, [isScreen])
 
 	const stopCapture = () => {
-		// const videoTrack = innerStream.getVideoTracks()[0];
-		// currentPeer.forEach(peer => peer.getSenders().find(s => s.track.kind === videoTrack.kind).replaceTrack(videoTrack))
+		const videoTrack = innerStream.getVideoTracks()[0];
+		currentPeer.forEach(peer => peer.getSenders().find(s => s.track.kind === videoTrack.kind).replaceTrack(videoTrack))
 		setIsScreen(false);
 	}
 
@@ -263,22 +263,22 @@ export const Chat = ({ getUsersFromStore }) => {
 	})
 
 	useEffect(() => {
-		if (userFromSocket) {
-			setVoiceChatCtx({
-				isAudio: isAudio,
-				setIsAudio: setIsAudio,
-				isVideo: isVideo,
-				setIsVideo: setIsVideo,
-				isScreen: isScreen,
-				startCapture: startCapture,
-				stopCapture: stopCapture,
-				socket: socket,
-				messages: messages,
-				setMessages: setMessages,
-				me: `${userUUID}_${sessionToken.split('-')[0]}`
-			})
-		}
-	}, [isAudio, isVideo, isScreen, userFromSocket, messages, userUUID, sessionToken])
+
+		setVoiceChatCtx({
+			isAudio: isAudio,
+			setIsAudio: setIsAudio,
+			isVideo: isVideo,
+			setIsVideo: setIsVideo,
+			isScreen: isScreen,
+			startCapture: startCapture,
+			stopCapture: stopCapture,
+			socket: socket,
+			messages: messages,
+			setMessages: setMessages,
+			me: `${userUUID}_${sessionToken.split('-')[0]}`
+		})
+
+	}, [isAudio, isVideo, isScreen, messages, userUUID, sessionToken])
 
 	return (
 		<VoiceChatButtonsContext.Provider value={voiceChatCtx}>
