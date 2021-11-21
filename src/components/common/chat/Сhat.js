@@ -32,7 +32,7 @@ export const Chat = ({ getUsersFromStore }) => {
 	const [currentPeer, setCurrentPeer] = useState([]);
 	const [peerIDsList, setPeerIDsList] = useState([]);
 	const [buttonDisabled, setButtonDisabled] = useState(true)
-	const socket = useRef(io(`https://${mainServerRoot}/`, {
+	const socket = useRef(io.connect(`https://${mainServerRoot}/`, {
 		path: pathForWebSocket,
 	}));
 
@@ -42,6 +42,111 @@ export const Chat = ({ getUsersFromStore }) => {
 
 	//refs
 	const videoContainer = useRef();
+
+	//initialize navigator 
+	useEffect(() => {
+		getVideoAudioStream().then((stream) => {
+			if (stream) {
+				setInnnerStream(stream);
+			}
+		})
+	}, [])
+
+	//initialize peer
+	useEffect(() => {
+		if (userUUID && sessionToken) {
+			setPeer(initializePeerConnection(userUUID, sessionToken));
+			setSocketId(`${sessionToken}_9693986f-a0ad-4f50-9b98-4f740faa942c`)
+		}
+	}, [userUUID, sessionToken])
+
+
+	useEffect(() => {
+		if (innerStream && peer) {
+			socket.current.on('user_connected', (args) => {
+				console.log('User connected => ', args)
+				if (args !== peer.id) {
+					connectAndCall(args, innerStream)
+				}
+			})
+
+			socket.current.on('user_list', (args) => {
+				console.log('users in list => ', args);
+				setTimeout(function () {
+
+					for (let remotePeerID of args) {
+						if (remotePeerID !== peer.id) {
+							connectAndCall(remotePeerID, innerStream)
+						}
+					}
+				}, 2000)
+			})
+		}
+	}, [innerStream, peer])
+
+	useEffect(() => {
+		if (peer && innerStream)
+			peer.on('call', (call) => {
+
+				const peerID = call.peer;
+				if (peerID in connections) {
+					return
+				}
+
+				setConnections(connections[peerID] = {
+					call: call,
+					video: undefined,
+					innerStream: undefined,
+				})
+
+				call.answer(innerStream);
+
+				call.on('stream', (remoteStream) => {
+					if (connections[peerID].innerStream !== undefined) return;
+					setRemoteStream(remoteStream, call)
+				});
+
+				call.on('close', () => {
+					console.log('closed');
+				})
+			})
+	}, [peer, innerStream])
+
+	useEffect(() => {
+		if (peer && socketId) {
+			startSocketIO(socket, peer, connectAndCall, disconnectFromPeer);
+		}
+	}, [peer, socketId])
+
+	useEffect(() => {
+		socket.current.on('connected_result', (arg) => {
+			console.log(arg);
+			setUserFromSocket(arg);
+		})
+	}, [])
+
+	useEffect(() => {
+		if (peer) {
+			peer.on('open', function (id) {
+
+				socket.current.emit('user_connected', socketId)
+
+				setPeerIDsList([...peerIDsList, id]);
+			});
+
+			peer.on('connection', function (connection) {
+				setButtonDisabled(false)
+			});
+
+			peer.on('close', () => {
+				console.log('closed');
+			})
+
+			peer.on('error', err => {
+				console.log(err);
+			})
+		}
+	}, [peer])
 
 	const setRemoteStream = (remoteStream, call) => {
 		const peerID = call.peer;
@@ -69,7 +174,6 @@ export const Chat = ({ getUsersFromStore }) => {
 		delete connections[peerId];
 	}
 
-	//0 for my video, 1 for incoming video
 	const startCapture = () => {
 		setIsScreen(true);
 	}
@@ -117,109 +221,7 @@ export const Chat = ({ getUsersFromStore }) => {
 		call.on('close', () => {
 			setButtonDisabled(true);
 		})
-
-		socket.current.on('user_connected', (args) => {
-			console.log(args);
-			if (args !== peer.id) {
-				connectAndCall(args, stream)
-			}
-		})
 	}
-
-	useEffect(() => {
-		if (userUUID && sessionToken) {
-			setPeer(initializePeerConnection(userUUID, sessionToken));
-			setSocketId(`${sessionToken}_9693986f-a0ad-4f50-9b98-4f740faa942c`)
-		}
-	}, [userUUID, sessionToken])
-
-	useEffect(() => {
-		if (peer) {
-			console.log(socketId);
-		}
-	}, [peer])
-
-	useEffect(() => {
-		if (peer) {
-			getVideoAudioStream().then((stream) => {
-				if (stream) {
-					setInnnerStream(stream);
-
-					peer.on('call', (call) => {
-
-						const peerID = call.peer;
-						if (peerID in connections) {
-							return
-						}
-
-						setConnections(connections[peerID] = {
-							call: call,
-							video: undefined,
-							innerStream: undefined,
-						})
-
-						call.answer(stream);
-
-						call.on('stream', (remoteStream) => {
-							if (connections[peerID].innerStream !== undefined) return;
-							setRemoteStream(remoteStream, call)
-						});
-
-						call.on('close', () => {
-							console.log('closed');
-						})
-					})
-
-					socket.current.on('user_connected', (args) => {
-						console.log('User connected => ', args)
-						if (args !== peer.id) {
-							connectAndCall(args, stream)
-						}
-					})
-
-					socket.current.on('user_list', (args) => {
-						console.log('users in list => ', args);
-						setTimeout(function () {
-
-							for (let remotePeerID of args) {
-								if (remotePeerID !== peer.id) {
-									connectAndCall(remotePeerID, stream)
-								}
-							}
-						}, 2000)
-					})
-				}
-			})
-		}
-	}, [peer, socket])
-
-	useEffect(() => {
-		if (peer && socketId) {
-			peer.on('open', function (id) {
-				startSocketIO(socket.current, peer, connectAndCall, disconnectFromPeer);
-				socket.current.on('connected_result', (arg) => {
-					console.log(arg);
-					setUserFromSocket(arg);
-				})
-
-				socket.current.emit('user_connected', socketId)
-
-				setPeerIDsList([...peerIDsList, id]);
-			});
-
-			peer.on('connection', function (connection) {
-				setButtonDisabled(false)
-			});
-
-			peer.on('close', () => {
-				console.log('closed');
-			})
-
-			peer.on('error', err => {
-				console.log(err);
-			})
-		}
-	}, [peer, socketId])
 
 	//Control of outcoming sound and video tracks. Mute by default
 	// useEffect(() => {

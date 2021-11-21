@@ -1,5 +1,5 @@
 import { useRef, useEffect, useMemo, useState } from 'react';
-import './App.css';
+import './ChatApp.css';
 import { NavBar } from "./components/common/navbar/NavBar";
 import { Switch, Route, Redirect } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
@@ -12,19 +12,13 @@ import { Chat } from './components/common/chat/Сhat';
 import { Main } from './components/common/main/Main'
 import { io } from 'socket.io-client';
 
-function App() {
+function ChatApp() {
 
   const dispatch = useDispatch();
 
   useEffect(() => {
     dispatch(initializeApp());
   }, [])
-
-
-  //ref for ws
-  // const socket = useRef(io(`https://${mainServerRoot}/`, {
-  //   path: pathForWebSocket,
-  // }));
 
   const [contextWSSS, setContextWSSS] = useState({
     linkForSS: '',
@@ -82,4 +76,4 @@ function App() {
   );
 }
 
-export default App;
+export default ChatApp;

@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
-import App from './App';
+import ChatApp from './ChatApp';
 import { BrowserRouter } from 'react-router-dom'
 import reportWebVitals from './reportWebVitals';
 import { Provider } from 'react-redux';
@@ -9,13 +9,13 @@ import store from './components/redux/store'
 
 
 ReactDOM.render(
-  <React.StrictMode>
-    <BrowserRouter>
-      <Provider store={store}>
-        <App />
-      </Provider>
-    </BrowserRouter>
-  </React.StrictMode>,
+
+  <BrowserRouter>
+    <Provider store={store}>
+      <ChatApp />
+    </Provider>
+  </BrowserRouter>
+  ,
   document.getElementById('root')
 );
 

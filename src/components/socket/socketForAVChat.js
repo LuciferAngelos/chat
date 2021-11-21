@@ -1,20 +1,20 @@
-export function startSocketIO(socket, peer, connectAndCall, disconnectFromPeer, sessionToken, companyUUID = '9693986f-a0ad-4f50-9b98-4f740faa942c') {
-	socket.io.on('open', () => {
+export function startSocketIO(socket, peer, connectAndCall, disconnectFromPeer) {
+	socket.current.io.on('open', () => {
 		console.log('Socket Opened')
 	})
-	socket.io.on('close', () => {
+	socket.current.io.on('close', () => {
 		console.log('close')
 		setTimeout(() => {
-			startSocketIO(socket, peer, connectAndCall, disconnectFromPeer, sessionToken, companyUUID = '9693986f-a0ad-4f50-9b98-4f740faa942c')
+			startSocketIO(socket.current, peer, connectAndCall, disconnectFromPeer)
 		}, 1000)
 	})
-	socket.on("connect", () => {
-		console.log('socket connected => ', socket.connected);
+	socket.current.on("connect", () => {
+		console.log('socket connected => ', socket.current.connected);
 	});
-	socket.on('connected_to_room', (arg) => {
+	socket.current.on('connected_to_room', (arg) => {
 		console.log(arg);
 	})
-	socket.on('user_disconnected', (args) => {
+	socket.current.on('user_disconnected', (args) => {
 		console.log('user_disconnected')
 		if (args !== peer.id) {
 			disconnectFromPeer(args)
