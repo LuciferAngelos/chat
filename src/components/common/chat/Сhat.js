@@ -39,81 +39,82 @@ export const Chat = () => {
 	//refs
 	const videoContainer = useRef();
 
-	//initialize navigator 
-	useEffect(() => {
-		getVideoAudioStream().then((stream) => {
-			if (stream) {
-				setInnnerStream(stream);
-			}
-		})
-	}, [])
-
 	//initialize peer only when we have a stream
 	useEffect(() => {
-		if (userUUID && sessionToken && innerStream) {
+		if (userUUID && sessionToken) {
 			setPeer(initializePeerConnection(userUUID, sessionToken));
 			setSocketId(`${sessionToken}_9693986f-a0ad-4f50-9b98-4f740faa942c`)
 		}
-	}, [userUUID, sessionToken, innerStream])
+	}, [userUUID, sessionToken])
 
 	useEffect(() => {
 		if (peer) {
 			peer.on('open', function (id) {
-				console.log(id);
+				console.log('Peer Opened');
 				socket.current = io(`https://${mainServerRoot}/`, {
 					path: pathForWebSocket,
 				});
 
 				startSocketIO(socket, peer, connectAndCall, disconnectFromPeer);
-				peer.on('call', (call) => {
 
-					const peerID = call.peer;
-					if (peerID in connections) {
-						return
-					}
+				//initialize navigator 
 
-					setConnections(connections[peerID] = {
-						call: call,
-						video: undefined,
-						innerStream: undefined,
-					})
+				getVideoAudioStream().then((stream) => {
+					console.log('Stream gotten');
+					if (stream) {
+						setInnnerStream(stream);
 
-					call.answer(innerStream);
+						peer.on('call', (call) => {
 
-					call.on('stream', (remoteStream) => {
-						if (connections[peerID].innerStream !== undefined) return;
-						setRemoteStream(remoteStream, call)
-					});
-
-					call.on('close', () => {
-						console.log('closed');
-					})
-				})
-				socket.current.on('connected_result', (arg) => {
-					console.log(arg);
-					setUserFromSocket(arg);
-				})
-
-				socket.current.on('user_connected', (args) => {
-					console.log('User connected => ', args)
-					if (args !== peer.id) {
-						connectAndCall(args, innerStream)
-					}
-				})
-
-				socket.current.on('user_list', (args) => {
-					console.log('users in list => ', args);
-					setTimeout(function () {
-
-						for (let remotePeerID of args) {
-							if (remotePeerID !== peer.id) {
-								connectAndCall(remotePeerID, innerStream)
+							const peerID = call.peer;
+							if (peerID in connections) {
+								return
 							}
-						}
-					}, 2000)
-				})
 
-				socket.current.emit('user_connected', socketId)
+							setConnections(connections[peerID] = {
+								call: call,
+								video: undefined,
+								innerStream: undefined,
+							})
+
+							call.answer(stream);
+
+							call.on('stream', (remoteStream) => {
+								if (connections[peerID].innerStream !== undefined) return;
+								setRemoteStream(remoteStream, call)
+							});
+
+							call.on('close', () => {
+								console.log('closed');
+							})
+						})
+						socket.current.on('connected_result', (arg) => {
+							console.log(arg);
+							setUserFromSocket(arg);
+						})
+
+						socket.current.on('user_connected', (args) => {
+							console.log('User connected => ', args)
+							if (args !== peer.id) {
+								connectAndCall(args, stream)
+							}
+						})
+
+						socket.current.on('user_list', (args) => {
+							console.log('users in list => ', args);
+							setTimeout(function () {
+
+								for (let remotePeerID of args) {
+									if (remotePeerID !== peer.id) {
+										connectAndCall(remotePeerID, stream)
+									}
+								}
+							}, 2000)
+						})
+
+						socket.current.emit('user_connected', socketId)
+					}
+				})
 
 				setPeerIDsList([...peerIDsList, id]);
 			});
