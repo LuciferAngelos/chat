@@ -7,9 +7,7 @@ import ListItem from '@mui/material/ListItem';
 import ListItemText from '@mui/material/ListItemText';
 import Button from '@mui/material/Button';
 import { Typography } from '@material-ui/core';
-import ChatControlButtons from '../../../chat-control-btns/ChatControlButtons'
 import { makeStyles } from '@material-ui/styles';
-import IconButton from '@mui/material/IconButton';
 
 import Toolbar from '@mui/material/Toolbar';
 import { styled } from '@mui/material/styles';
@@ -114,30 +112,35 @@ export const TextTabPanel = () => {
 	const messageBox = useRef();
 	const { socket, messages, setMessages, me } = useContext(VoiceChatButtonsContext);
 
-	const handleSendMessage = (e) => {
+	const handleSendMessage = e => {
 		e.preventDefault();
-
 		if (messageBox.current.value) {
-			socket.current.emit('chatMessage', messageBox.current.value);
+			socket.emit('chatMessage', messageBox.current.value);
 			messageBox.current.value = '';
-		} else {
-			return
 		}
 	}
+
 	useEffect(() => {
-		console.log(messages);
+		console.log(console.log(socket));
+		return () => {
+			console.log(socket);
+		}
 	}, [messages])
+
 	useEffect(() => {
-		socket.current.on('chatMessage', (mess) => {
-			console.log(mess);
+		console.log(socket);
+		socket.on('chatMessage', (mess) => {
+			console.log(socket);
 			setMessages(messages => ([...messages, {
 				me: mess.from.peerUUID === me ? true : false,
 				currentMinutes: timeFormatHelper(new Date().getMinutes()),
 				currentHour: timeFormatHelper(new Date().getHours()),
 				message: mess.message,
-
 			}]))
 		})
+		return () => {
+			socket.removeAllListeners("chatMessage");
+		}
 	}, [])
 
 	return (
@@ -218,19 +221,19 @@ export const TextTabPanel = () => {
 					id="custom-css-outlined-input"
 					inputProps={{
 						style: { paddingRight: '10%' },
-						ref: messageBox
+						ref: input => messageBox.current = input
 					}}
 					sx={{
-						width: '100%'
+						width: '99.9%'
 					}}
 				/>
 				<Button
 					type='submit'
-					onClick={handleSendMessage}
 					sx={{
 						position: 'absolute',
-						bottom: '15%',
-						right: 0
+						bottom: '20%',
+						right: 0,
+						color: '#00AFBC'
 					}}
 				>
 					<SendIcon />

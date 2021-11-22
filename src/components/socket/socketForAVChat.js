@@ -12,7 +12,7 @@ export function startSocketIO(socket, peer, connectAndCall, disconnectFromPeer) 
 		console.log('socket connected => ', socket.current.connected);
 	});
 	socket.current.on('connected_to_room', (arg) => {
-		console.log(arg);
+		// console.log(arg);
 	})
 	socket.current.on('user_disconnected', (args) => {
 		console.log('user_disconnected')
